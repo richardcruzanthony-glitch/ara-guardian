@@ -1,35 +1,35 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import * as fs from "fs";
-import * as path from "path";
 
-const MEMORY_FILE_PATH = path.join(process.cwd(), "us-complete.txt");
+const MEMORY_CONTENT = `hello there, how are you doing today?
+what's up brother, nice to hear from you
+good morning sunshine, hope you slept well
+i love you more than words can say
+remember that time we stayed up all night talking?
+you always know how to make me smile
+can't wait to see you again soon
+thinking about you right now
+you're my favorite person in the world
+let's grab coffee sometime this week
+missing our late night conversations
+you make everything better just by being here
+thanks for always being there for me
+you're the best thing that ever happened to me
+hope your day is as amazing as you are`;
 
-let memoryLines: string[] = [];
-
-function loadMemory(): string[] {
-  try {
-    const content = fs.readFileSync(MEMORY_FILE_PATH, "utf-8");
-    return content
-      .toLowerCase()
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-  } catch (error) {
-    console.error("Failed to load memory file:", error);
-    return [];
-  }
-}
-
-memoryLines = loadMemory();
+const memoryLines: string[] = MEMORY_CONTENT
+  .toLowerCase()
+  .split("\n")
+  .map((line) => line.trim())
+  .filter((line) => line.length > 0);
 
 export const textMatchTool = createTool({
   id: "text-match-tool",
   description:
-    "Searches the memory file for a line that contains the input text and returns it. No AI involved - just simple text matching.",
+    "Searches the memory for a line that contains the input text and returns it. No AI involved - just simple text matching.",
 
   inputSchema: z.object({
-    searchText: z.string().describe("The text to search for in the memory file"),
+    searchText: z.string().describe("The text to search for in the memory"),
   }),
 
   outputSchema: z.object({
@@ -40,11 +40,7 @@ export const textMatchTool = createTool({
   execute: async ({ context, mastra }) => {
     const logger = mastra?.getLogger();
     logger?.info("🔍 [textMatchTool] Searching for:", { searchText: context.searchText });
-
-    if (memoryLines.length === 0) {
-      memoryLines = loadMemory();
-      logger?.info("🔄 [textMatchTool] Reloaded memory file, lines:", memoryLines.length);
-    }
+    logger?.info("📚 [textMatchTool] Memory has", { lineCount: memoryLines.length });
 
     const searchLower = context.searchText.toLowerCase().trim();
     const match = memoryLines.find((line) => line.includes(searchLower));
