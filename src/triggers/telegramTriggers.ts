@@ -31,9 +31,9 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { registerApiRoute } from "../mastra/inngest";
 import { Mastra } from "@mastra/core";
 
-if (!process.env.TELEGRAM_BOT_TOKEN) {
+if (!process.env.BOT_TOKEN) {
   console.warn(
-    "Trying to initialize Telegram triggers without TELEGRAM_BOT_TOKEN. Can you confirm that the Telegram integration is configured correctly?",
+    "Trying to initialize Telegram triggers without BOT_TOKEN. Can you confirm that the Telegram integration is configured correctly?",
   );
 }
 

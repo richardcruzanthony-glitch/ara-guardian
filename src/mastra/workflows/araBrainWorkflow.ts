@@ -60,10 +60,10 @@ const sendToTelegram = createStep({
       response: inputData.response 
     });
 
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const botToken = process.env.BOT_TOKEN;
     if (!botToken) {
-      logger?.error("❌ [Step 2] TELEGRAM_BOT_TOKEN not configured");
-      throw new Error("TELEGRAM_BOT_TOKEN not configured");
+      logger?.error("❌ [Step 2] BOT_TOKEN not configured");
+      throw new Error("BOT_TOKEN not configured");
     }
 
     try {
