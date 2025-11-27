@@ -67,11 +67,17 @@ export function registerTelegramTrigger({
 
           logger?.info("📝 [Telegram] payload", payload);
 
+          const message = payload.message || payload.edited_message;
+          if (!message || !message.text) {
+            logger?.info("📝 [Telegram] Ignoring non-text message");
+            return c.text("OK", 200);
+          }
+
           await handler(mastra, {
             type: triggerType,
             params: {
-              userName: payload.message.from.username,
-              message: payload.message.text,
+              userName: message.from?.username || message.from?.first_name || "unknown",
+              message: message.text,
             },
             payload,
           } as TriggerInfoTelegramOnNewMessage);
