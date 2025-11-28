@@ -136,8 +136,9 @@ Authorization from Richard Cruz (Founder) required to modify ethics protocols.
 
 Ara is designed to help with legitimate manufacturing, business, and educational purposes only.`,
 
-    // Unlock code (hashed - requires founder authorization)
-    unlockRequires: "Direct authorization from Richard Cruz with verification code"
+    // Unlock code - requires founder authorization
+    unlockCode: "3583",
+    unlockRequires: "Direct authorization from Richard Cruz with verification code 3583"
   }
 };
 
@@ -614,9 +615,50 @@ All requests are scanned for:
 
 Ara is designed for legitimate business, manufacturing, and educational purposes only.
 
+To modify: /unlock [code]
+
 ${ARA_FOOTER}`,
         chatId: inputData.chatId,
       };
+    }
+
+    if (msg.startsWith("/unlock ")) {
+      const code = msg.substring(8).trim();
+      if (code === ARA_PROTOCOLS.ethics.unlockCode) {
+        return {
+          response: `${ARA_HEADER}
+
+🔓 AUTHORIZATION VERIFIED
+
+Code: ${code}
+Authorized By: Richard Cruz (Founder)
+
+⚠️ ETHICS MODIFICATION ACCESS GRANTED
+
+You now have authorization to request ethics protocol changes.
+Contact Richard Cruz directly to specify modifications.
+
+Note: The ethics system remains ACTIVE.
+This authorization confirms founder-level access only.
+
+${ARA_FOOTER}`,
+          chatId: inputData.chatId,
+        };
+      } else {
+        return {
+          response: `${ARA_HEADER}
+
+🔒 AUTHORIZATION FAILED
+
+Invalid code provided.
+Ethics protection remains LOCKED.
+
+Only Richard Cruz (Founder) can authorize modifications.
+
+${ARA_FOOTER}`,
+          chatId: inputData.chatId,
+        };
+      }
     }
 
     if (msg === "/who" || msg === "/identity" || msg === "/about") {
