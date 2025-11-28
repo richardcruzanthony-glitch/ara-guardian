@@ -294,9 +294,51 @@ ${ARA_FOOTER}`,
       preview: result.matchedLine.substring(0, 100)
     });
 
-    let response = result.matchedLine;
-    if (result.foundMatch && result.alternatives && result.alternatives.length > 0) {
-      response += "\n\n---\nAlso found:\n• " + result.alternatives.slice(0, 2).map(a => a.substring(0, 80)).join("\n• ");
+    let response = '';
+    
+    if (result.foundMatch && result.confidence > 0.3) {
+      response = `${ARA_HEADER}\n\n${result.matchedLine}`;
+      if (result.alternatives && result.alternatives.length > 0) {
+        response += "\n\n---\nRelated:\n• " + result.alternatives.slice(0, 2).map(a => a.substring(0, 80)).join("\n• ");
+      }
+      response += `\n\n${ARA_FOOTER}`;
+    } else {
+      // No direct match - try cognitive approach
+      logger?.info("🧠 [Step 1] No direct match, using cognitive fallback");
+      
+      // Try problem solving
+      const solution = brainEngine.solve(msg);
+      
+      // Try creative generation
+      const creative = brainEngine.generate(msg, 'creative');
+      
+      // Try reasoning
+      const memories = brainEngine.recall(msg, 3);
+      const reasoning = brainEngine.reason(msg, memories);
+      
+      // Build intelligent response
+      response = `${ARA_HEADER}\n\n`;
+      
+      if (solution.confidence > 0.4) {
+        response += `💡 Here's what I found:\n${solution.solution}\n\n`;
+      } else if (creative.confidence > 0.3) {
+        response += `💭 Based on my knowledge:\n${creative.text}\n\n`;
+      } else if (reasoning.confidence > 0.3) {
+        response += `🔍 From my analysis:\n${reasoning.response}\n\n`;
+      } else {
+        // Last resort - suggest what I know about
+        const stats = brainEngine.getCognitiveStats();
+        response += `I don't have specific information about "${msg}" yet.\n\n`;
+        response += `💡 Try asking about:\n`;
+        response += `• CNC machining & materials\n`;
+        response += `• Manufacturing processes\n`;
+        response += `• Pricing & quotes (/quote)\n`;
+        response += `• Guardian Sentinel services\n\n`;
+        response += `Or teach me: /learn [your knowledge]\n\n`;
+        response += `📊 Brain: ${stats.memory.longTerm.toLocaleString()} memories loaded\n`;
+      }
+      
+      response += ARA_FOOTER;
     }
 
     brainEngine.saveInteraction(msg, response, 'telegram');
