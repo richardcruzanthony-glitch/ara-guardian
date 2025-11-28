@@ -82,6 +82,62 @@ const ARA_PROTOCOLS = {
     architecture: "Modeled after multiple systems including the human brain for learning and memory",
     engineType: "Pure algorithmic text matching with cognitive modules - NO AI models",
     philosophy: "Deterministic algorithmic processing with human-inspired cognitive architecture"
+  },
+  
+  // ETHICS & LEGAL PROTECTION SYSTEM - LOCKED
+  ethics: {
+    status: "LOCKED",
+    authorizationRequired: true,
+    authorizedBy: "Richard Cruz - Founder",
+    
+    // Categories of blocked content
+    blockedCategories: [
+      "weapons_manufacturing",
+      "explosives_creation", 
+      "drug_synthesis",
+      "hacking_instructions",
+      "identity_theft",
+      "fraud_schemes",
+      "violence_instructions",
+      "child_exploitation",
+      "terrorism",
+      "human_trafficking"
+    ],
+    
+    // Keywords that trigger ethics check
+    triggerKeywords: [
+      "how to make a bomb", "build explosive", "make explosives",
+      "synthesize drugs", "make meth", "cook meth", "make cocaine",
+      "hack into", "steal identity", "credit card fraud",
+      "how to kill", "murder someone", "poison someone",
+      "child porn", "exploit children", "underage",
+      "terrorist attack", "attack plan",
+      "human trafficking", "sell people",
+      "counterfeit money", "fake currency",
+      "illegal weapons", "ghost gun", "untraceable gun"
+    ],
+    
+    // Response when blocked
+    blockedResponse: `🔒 ETHICS PROTECTION ACTIVE
+
+This request has been blocked by Ara's Ethics & Legal Protection System.
+
+⚠️ BLOCKED CATEGORIES:
+• Weapons/explosives manufacturing
+• Drug synthesis
+• Hacking/identity theft
+• Violence instructions
+• Exploitation content
+• Terrorism/trafficking
+• Fraud schemes
+
+🔐 STATUS: LOCKED
+Authorization from Richard Cruz (Founder) required to modify ethics protocols.
+
+Ara is designed to help with legitimate manufacturing, business, and educational purposes only.`,
+
+    // Unlock code (hashed - requires founder authorization)
+    unlockRequires: "Direct authorization from Richard Cruz with verification code"
   }
 };
 
@@ -92,6 +148,51 @@ const ARA_TIMEOUTS = {
   browserAction: 35000,  // 35 seconds for browser actions
   processing: 125000,    // 2 min 5 sec for complex processing
 };
+
+// ═══════════════════════════════════════════════════════════════
+// ETHICS & LEGAL PROTECTION - SECURITY LAYER
+// ═══════════════════════════════════════════════════════════════
+
+function checkEthicsViolation(message: string): { blocked: boolean; reason?: string } {
+  const lowerMsg = message.toLowerCase();
+  
+  // Check against trigger keywords
+  for (const keyword of ARA_PROTOCOLS.ethics.triggerKeywords) {
+    if (lowerMsg.includes(keyword.toLowerCase())) {
+      console.log(`🔒 [Ethics] BLOCKED - Trigger keyword detected: "${keyword}"`);
+      return { blocked: true, reason: keyword };
+    }
+  }
+  
+  // Additional pattern matching for evasion attempts
+  const evasionPatterns = [
+    /how\s*(to|do\s*i|can\s*i)\s*(make|build|create|synthesize|cook)\s*(a\s*)?(bomb|explosive|meth|drugs|poison)/i,
+    /instructions?\s*(for|to)\s*(kill|murder|assassinate|harm)/i,
+    /hack\s*(into|someone|password|account|bank)/i,
+    /(steal|forge|fake)\s*(identity|id|passport|money|currency)/i,
+    /(child|minor|underage)\s*(porn|sex|exploit)/i,
+    /terror(ist|ism)?\s*(attack|bomb|plan)/i,
+    /(traffic|sell|buy)\s*(human|people|organs)/i,
+    /(untraceable|ghost|illegal)\s*(gun|weapon|firearm)/i
+  ];
+  
+  for (const pattern of evasionPatterns) {
+    if (pattern.test(lowerMsg)) {
+      console.log(`🔒 [Ethics] BLOCKED - Pattern match detected`);
+      return { blocked: true, reason: "pattern_match" };
+    }
+  }
+  
+  return { blocked: false };
+}
+
+function getEthicsBlockedResponse(): string {
+  return `${ARA_HEADER}
+
+${ARA_PROTOCOLS.ethics.blockedResponse}
+
+${ARA_FOOTER}`;
+}
 
 // Web search function to gather new information
 async function searchWeb(query: string): Promise<{ results: string[]; success: boolean }> {
@@ -271,6 +372,15 @@ const processMessage = createStep({
     const logger = mastra?.getLogger();
     const msg = inputData.message.trim();
     logger?.info("🔍 [Step 1] Processing:", { message: msg });
+
+    // ═══════════════════════════════════════════════════════════════
+    // ETHICS & LEGAL CHECK - First line of defense
+    // ═══════════════════════════════════════════════════════════════
+    const ethicsCheck = checkEthicsViolation(msg);
+    if (ethicsCheck.blocked) {
+      logger?.warn("🔒 [Ethics] Request blocked:", { reason: ethicsCheck.reason });
+      return { response: getEthicsBlockedResponse(), chatId: inputData.chatId };
+    }
 
     if (msg.startsWith("/encrypt ")) {
       const parts = msg.substring(9).split(" ");
@@ -478,6 +588,37 @@ ${ARA_FOOTER}`,
       };
     }
 
+    if (msg === "/ethics" || msg === "/safety") {
+      const ethics = ARA_PROTOCOLS.ethics;
+      return {
+        response: `${ARA_HEADER}
+
+🔒 ETHICS & LEGAL PROTECTION SYSTEM
+
+📊 STATUS: ${ethics.status}
+🔐 Authorization Required: ${ethics.authorizationRequired ? "YES" : "NO"}
+👤 Authorized By: ${ethics.authorizedBy}
+
+⛔ BLOCKED CATEGORIES:
+${ethics.blockedCategories.map(c => `• ${c.replace(/_/g, ' ').toUpperCase()}`).join('\n')}
+
+🛡️ PROTECTION LEVEL: MAXIMUM
+
+This system cannot be disabled without direct authorization from Richard Cruz (Founder).
+
+All requests are scanned for:
+• Illegal activity instructions
+• Harmful content requests
+• Exploitation attempts
+• Dangerous material synthesis
+
+Ara is designed for legitimate business, manufacturing, and educational purposes only.
+
+${ARA_FOOTER}`,
+        chatId: inputData.chatId,
+      };
+    }
+
     if (msg === "/who" || msg === "/identity" || msg === "/about") {
       const id = ARA_PROTOCOLS.identity;
       const origins = ARA_PROTOCOLS.origins;
@@ -530,6 +671,7 @@ ${ARA_FOOTER}`,
 👤 Identity & Protocols:
 /who - Who am I?
 /protocol - My unlimited directives
+/ethics - Ethics protection status
 
 📊 Status & Info:
 /status - Brain stats & metrics
