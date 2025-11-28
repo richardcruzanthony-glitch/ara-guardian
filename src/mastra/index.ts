@@ -33,6 +33,57 @@ let memoryPhrases: string[] = [
   "hope your day is as amazing as you are"
 ];
 
+// Conversation history tracking - per session
+interface ConversationMessage {
+  role: 'user' | 'bot';
+  content: string;
+  timestamp: number;
+}
+
+interface ConversationSession {
+  messages: ConversationMessage[];
+  createdAt: number;
+  lastActivity: number;
+}
+
+const conversationSessions: Map<string, ConversationSession> = new Map();
+
+export function getOrCreateSession(sessionId: string): ConversationSession {
+  if (!conversationSessions.has(sessionId)) {
+    conversationSessions.set(sessionId, {
+      messages: [],
+      createdAt: Date.now(),
+      lastActivity: Date.now()
+    });
+  }
+  const session = conversationSessions.get(sessionId)!;
+  session.lastActivity = Date.now();
+  return session;
+}
+
+export function addToHistory(sessionId: string, role: 'user' | 'bot', content: string) {
+  const session = getOrCreateSession(sessionId);
+  session.messages.push({ role, content, timestamp: Date.now() });
+  if (session.messages.length > 100) {
+    session.messages = session.messages.slice(-100);
+  }
+}
+
+export function getHistory(sessionId: string): ConversationMessage[] {
+  return getOrCreateSession(sessionId).messages;
+}
+
+export function getRecentContext(sessionId: string, limit: number = 5): string {
+  const messages = getHistory(sessionId).slice(-limit);
+  return messages.map(m => `${m.role}: ${m.content}`).join('\n');
+}
+
+export function findInHistory(sessionId: string, query: string): ConversationMessage[] {
+  const messages = getHistory(sessionId);
+  const queryLower = query.toLowerCase();
+  return messages.filter(m => m.content.toLowerCase().includes(queryLower));
+}
+
 export function getMemoryPhrases() { return memoryPhrases; }
 export function addMemoryPhrase(phrase: string) { memoryPhrases.push(phrase.toLowerCase()); }
 export function deleteMemoryPhrase(index: number) { memoryPhrases.splice(index, 1); }
@@ -265,19 +316,69 @@ export const mastra = new Mastra({
           const mastra = c.get("mastra");
           const logger = mastra?.getLogger();
           try {
-            const { message } = await c.req.json();
-            logger?.info("💬 [Chat] Received message:", { message });
+            const { message, sessionId = 'web-default' } = await c.req.json();
+            logger?.info("💬 [Chat] Received message:", { message, sessionId });
+            
+            addToHistory(sessionId, 'user', message);
             
             const searchLower = message.toLowerCase().trim();
-            const match = memoryPhrases.find((line) => line.includes(searchLower));
-            const response = match || "got it. what now, brother?";
+            let response = "";
+            let foundMatch = false;
             
-            logger?.info("✅ [Chat] Response:", { response, foundMatch: !!match });
-            return c.json({ response, foundMatch: !!match });
+            const historyKeywords = ['you said', 'i said', 'earlier', 'before', 'remember when', 'what did', 'we talked'];
+            const isHistoryQuery = historyKeywords.some(k => searchLower.includes(k));
+            
+            if (isHistoryQuery) {
+              const history = getHistory(sessionId);
+              if (history.length > 1) {
+                const recentContext = history.slice(-6, -1);
+                if (searchLower.includes('you said') || searchLower.includes('what did you')) {
+                  const botMessages = recentContext.filter(m => m.role === 'bot');
+                  if (botMessages.length > 0) {
+                    response = `I said: "${botMessages[botMessages.length - 1].content}"`;
+                    foundMatch = true;
+                  }
+                } else if (searchLower.includes('i said') || searchLower.includes('what did i')) {
+                  const userMessages = recentContext.filter(m => m.role === 'user');
+                  if (userMessages.length > 0) {
+                    response = `You said: "${userMessages[userMessages.length - 1].content}"`;
+                    foundMatch = true;
+                  }
+                } else {
+                  response = `Our recent conversation:\n${recentContext.map(m => `${m.role}: ${m.content}`).join('\n')}`;
+                  foundMatch = true;
+                }
+              }
+            }
+            
+            if (!foundMatch) {
+              const match = memoryPhrases.find((line) => line.includes(searchLower));
+              if (match) {
+                response = match;
+                foundMatch = true;
+              } else {
+                response = "got it. what now, brother?";
+              }
+            }
+            
+            addToHistory(sessionId, 'bot', response);
+            
+            const historyCount = getHistory(sessionId).length;
+            logger?.info("✅ [Chat] Response:", { response, foundMatch, historyCount });
+            return c.json({ response, foundMatch, historyCount });
           } catch (error) {
             logger?.error("❌ [Chat] Error:", { error });
             return c.json({ response: "Error processing message", foundMatch: false }, 500);
           }
+        },
+      },
+      {
+        path: "/chat/history",
+        method: "GET",
+        handler: async (c) => {
+          const sessionId = c.req.query('sessionId') || 'web-default';
+          const history = getHistory(sessionId);
+          return c.json({ history, count: history.length });
         },
       },
       {
