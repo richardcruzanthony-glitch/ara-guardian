@@ -105,6 +105,135 @@ export const mastra = new Mastra({
     ],
     apiRoutes: [
       {
+        path: "/",
+        method: "GET",
+        handler: async (c) => {
+          const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ara-Brain Chat</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+    h1 { color: #a855f7; margin-bottom: 10px; }
+    .subtitle { color: #888; margin-bottom: 30px; font-size: 14px; }
+    .chat-container { width: 100%; max-width: 500px; background: #16213e; border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .messages { height: 400px; overflow-y: auto; margin-bottom: 20px; padding: 10px; background: #0f0f23; border-radius: 12px; }
+    .message { padding: 12px 16px; margin: 8px 0; border-radius: 12px; max-width: 85%; word-wrap: break-word; }
+    .user { background: #a855f7; margin-left: auto; text-align: right; }
+    .bot { background: #2d3748; }
+    .input-area { display: flex; gap: 10px; }
+    input { flex: 1; padding: 14px 18px; border: none; border-radius: 12px; background: #0f0f23; color: #eee; font-size: 16px; outline: none; }
+    input:focus { box-shadow: 0 0 0 2px #a855f7; }
+    button { padding: 14px 24px; background: #a855f7; color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 600; transition: background 0.2s; }
+    button:hover { background: #9333ea; }
+    button:disabled { background: #555; cursor: not-allowed; }
+    .typing { color: #888; font-style: italic; padding: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Ara-Brain</h1>
+  <p class="subtitle">Simple text matching bot - no AI</p>
+  <div class="chat-container">
+    <div class="messages" id="messages"></div>
+    <div class="input-area">
+      <input type="text" id="input" placeholder="Type a message..." onkeypress="if(event.key==='Enter')sendMessage()">
+      <button onclick="sendMessage()" id="sendBtn">Send</button>
+    </div>
+  </div>
+  <script>
+    const messages = document.getElementById('messages');
+    const input = document.getElementById('input');
+    const sendBtn = document.getElementById('sendBtn');
+    
+    function addMessage(text, isUser) {
+      const div = document.createElement('div');
+      div.className = 'message ' + (isUser ? 'user' : 'bot');
+      div.textContent = text;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+    
+    async function sendMessage() {
+      const text = input.value.trim();
+      if (!text) return;
+      
+      addMessage(text, true);
+      input.value = '';
+      sendBtn.disabled = true;
+      
+      const typing = document.createElement('div');
+      typing.className = 'typing';
+      typing.textContent = 'Thinking...';
+      messages.appendChild(typing);
+      
+      try {
+        const res = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+        typing.remove();
+        addMessage(data.response, false);
+      } catch (err) {
+        typing.remove();
+        addMessage('Error: ' + err.message, false);
+      }
+      sendBtn.disabled = false;
+      input.focus();
+    }
+    
+    input.focus();
+  </script>
+</body>
+</html>`;
+          return c.html(html);
+        },
+      },
+      {
+        path: "/chat",
+        method: "POST",
+        handler: async (c) => {
+          const mastra = c.get("mastra");
+          const logger = mastra?.getLogger();
+          try {
+            const { message } = await c.req.json();
+            logger?.info("💬 [Chat] Received message:", { message });
+            
+            const searchLower = message.toLowerCase().trim();
+            const memoryLines = [
+              "hello there, how are you doing today?",
+              "what's up brother, nice to hear from you",
+              "good morning sunshine, hope you slept well",
+              "i love you more than words can say",
+              "remember that time we stayed up all night talking?",
+              "you always know how to make me smile",
+              "can't wait to see you again soon",
+              "thinking about you right now",
+              "you're my favorite person in the world",
+              "let's grab coffee sometime this week",
+              "missing our late night conversations",
+              "you make everything better just by being here",
+              "thanks for always being there for me",
+              "you're the best thing that ever happened to me",
+              "hope your day is as amazing as you are"
+            ];
+            
+            const match = memoryLines.find((line) => line.includes(searchLower));
+            const response = match || "got it. what now, brother?";
+            
+            logger?.info("✅ [Chat] Response:", { response, foundMatch: !!match });
+            return c.json({ response, foundMatch: !!match });
+          } catch (error) {
+            logger?.error("❌ [Chat] Error:", { error });
+            return c.json({ response: "Error processing message", foundMatch: false }, 500);
+          }
+        },
+      },
+      {
         path: "/api/inngest",
         method: "ALL",
         createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
