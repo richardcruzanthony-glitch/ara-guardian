@@ -181,6 +181,15 @@ export const mastra = new Mastra({
     .add-btn:hover { background: #16a34a; }
     .info { background: #1e3a5f; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; color: #93c5fd; }
     .count { color: #888; font-size: 13px; margin-bottom: 10px; }
+    .tool-section { background: #0f0f23; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+    .tool-title { color: #a855f7; font-size: 16px; margin-bottom: 10px; }
+    .tool-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .tool-row input { flex: 1; }
+    .tool-output { background: #2d3748; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 14px; min-height: 40px; word-break: break-all; }
+    .tool-output:empty::before { content: 'Result will appear here...'; color: #666; }
+    .pattern-item { padding: 6px 0; border-bottom: 1px solid #3d4758; }
+    .pattern-item:last-child { border-bottom: none; }
+    .pattern-label { color: #a855f7; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -189,6 +198,7 @@ export const mastra = new Mastra({
   
   <div class="tabs">
     <button class="tab active" onclick="showTab('chat')">Chat</button>
+    <button class="tab" onclick="showTab('tools')">Tools</button>
     <button class="tab" onclick="showTab('resources')">Resources</button>
   </div>
   
@@ -206,6 +216,40 @@ export const mastra = new Mastra({
         <button onclick="sendMessage()" id="sendBtn">Send</button>
       </div>
       <div class="status" id="status"></div>
+    </div>
+    
+    <div id="toolsPanel" class="panel">
+      <div class="tool-section">
+        <h3 class="tool-title">Encryption</h3>
+        <div class="info">Encode your message with a secret key (Caesar cipher + custom offset)</div>
+        <div class="tool-row">
+          <input type="text" id="encryptInput" placeholder="Message to encrypt...">
+          <input type="number" id="encryptKey" placeholder="Key (1-25)" min="1" max="25" value="3" style="width:80px;">
+          <button onclick="encryptText()">Encrypt</button>
+        </div>
+        <div class="tool-output" id="encryptOutput"></div>
+      </div>
+      
+      <div class="tool-section">
+        <h3 class="tool-title">Decryption</h3>
+        <div class="info">Decode an encrypted message with the same key</div>
+        <div class="tool-row">
+          <input type="text" id="decryptInput" placeholder="Encrypted message...">
+          <input type="number" id="decryptKey" placeholder="Key (1-25)" min="1" max="25" value="3" style="width:80px;">
+          <button onclick="decryptText()">Decrypt</button>
+        </div>
+        <div class="tool-output" id="decryptOutput"></div>
+      </div>
+      
+      <div class="tool-section">
+        <h3 class="tool-title">Pattern Recognition</h3>
+        <div class="info">Analyze text to detect patterns, emails, numbers, repeated words</div>
+        <div class="tool-row">
+          <input type="text" id="patternInput" placeholder="Text to analyze...">
+          <button onclick="analyzePattern()">Analyze</button>
+        </div>
+        <div class="tool-output" id="patternOutput"></div>
+      </div>
     </div>
     
     <div id="resourcesPanel" class="panel">
@@ -329,6 +373,33 @@ export const mastra = new Mastra({
       input.focus();
     }
     
+    async function encryptText() {
+      const text = document.getElementById('encryptInput').value;
+      const key = parseInt(document.getElementById('encryptKey').value) || 3;
+      if (!text) return;
+      const res = await fetch('/tools/encrypt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, key }) });
+      const data = await res.json();
+      document.getElementById('encryptOutput').textContent = data.result;
+    }
+    
+    async function decryptText() {
+      const text = document.getElementById('decryptInput').value;
+      const key = parseInt(document.getElementById('decryptKey').value) || 3;
+      if (!text) return;
+      const res = await fetch('/tools/decrypt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, key }) });
+      const data = await res.json();
+      document.getElementById('decryptOutput').textContent = data.result;
+    }
+    
+    async function analyzePattern() {
+      const text = document.getElementById('patternInput').value;
+      if (!text) return;
+      const res = await fetch('/tools/pattern', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+      const data = await res.json();
+      const output = document.getElementById('patternOutput');
+      output.innerHTML = data.patterns.map(p => '<div class="pattern-item"><span class="pattern-label">' + p.type + ':</span> ' + p.value + '</div>').join('');
+    }
+    
     input.focus();
     loadMemory();
   </script>
@@ -387,6 +458,81 @@ export const mastra = new Mastra({
             logger?.error("❌ [Memory] Error:", { error });
             return c.json({ success: false }, 500);
           }
+        },
+      },
+      {
+        path: "/tools/encrypt",
+        method: "POST",
+        handler: async (c) => {
+          const { text, key } = await c.req.json();
+          const shift = (key % 26) || 3;
+          const result = text.split('').map((char: string) => {
+            if (char.match(/[a-z]/i)) {
+              const code = char.charCodeAt(0);
+              const base = char === char.toUpperCase() ? 65 : 97;
+              return String.fromCharCode(((code - base + shift) % 26) + base);
+            }
+            return char;
+          }).join('');
+          return c.json({ result });
+        },
+      },
+      {
+        path: "/tools/decrypt",
+        method: "POST",
+        handler: async (c) => {
+          const { text, key } = await c.req.json();
+          const shift = (key % 26) || 3;
+          const result = text.split('').map((char: string) => {
+            if (char.match(/[a-z]/i)) {
+              const code = char.charCodeAt(0);
+              const base = char === char.toUpperCase() ? 65 : 97;
+              return String.fromCharCode(((code - base - shift + 26) % 26) + base);
+            }
+            return char;
+          }).join('');
+          return c.json({ result });
+        },
+      },
+      {
+        path: "/tools/pattern",
+        method: "POST",
+        handler: async (c) => {
+          const { text } = await c.req.json();
+          const patterns: { type: string; value: string }[] = [];
+          
+          const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+[.][a-zA-Z]{2,}/g;
+          const emails = text.match(emailRegex);
+          if (emails) patterns.push({ type: 'Emails', value: emails.join(', ') });
+          
+          const phoneRegex = /[+]?[0-9][0-9 ()\-.]{9,}/g;
+          const phones = text.match(phoneRegex);
+          if (phones) patterns.push({ type: 'Phone Numbers', value: phones.map((p: string) => p.trim()).join(', ') });
+          
+          const urlRegex = /https?:[/][/][^ ]+/g;
+          const urls = text.match(urlRegex);
+          if (urls) patterns.push({ type: 'URLs', value: urls.join(', ') });
+          
+          const numberRegex = /[0-9]+/g;
+          const numbers = text.match(numberRegex);
+          if (numbers) patterns.push({ type: 'Numbers', value: numbers.join(', ') });
+          
+          const wordRegex = /[a-z]+/gi;
+          const words = text.toLowerCase().match(wordRegex) || [];
+          const wordCount: { [key: string]: number } = {};
+          words.forEach((w: string) => { wordCount[w] = (wordCount[w] || 0) + 1; });
+          const repeated = Object.entries(wordCount).filter(([_, c]) => c > 1).map(([w, c]) => w + ' (x' + c + ')');
+          if (repeated.length) patterns.push({ type: 'Repeated Words', value: repeated.join(', ') });
+          
+          patterns.push({ type: 'Length', value: text.length + ' characters, ' + words.length + ' words' });
+          
+          const upper = (text.match(/[A-Z]/g) || []).length;
+          const pct = text.length > 0 ? Math.round(upper/text.length*100) : 0;
+          patterns.push({ type: 'Uppercase', value: upper + ' uppercase letters (' + pct + '%)' });
+          
+          if (patterns.length === 2) patterns.unshift({ type: 'Patterns', value: 'No special patterns detected' });
+          
+          return c.json({ patterns });
         },
       },
       {
