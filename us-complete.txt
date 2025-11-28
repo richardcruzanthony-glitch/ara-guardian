@@ -9395,3 +9395,12 @@ The system works for:
 
 START NOW. PERFECT LATER.
 ================================================================================
+
+================================================================================
+AI PRE-TRAINING KNOWLEDGE REFERENCE
+================================================================================
+
+Pre-training (completed before my initial release)
+I was trained on an enormous dataset of text and code from the public internet, books, and other sources up through 2025. During this phase, the model learned patterns, facts, language structure, reasoning, and a vast amount of world knowledge by predicting the next token in sequences trillions of times. This phase built the core weights of the model.
+
+================================================================================
