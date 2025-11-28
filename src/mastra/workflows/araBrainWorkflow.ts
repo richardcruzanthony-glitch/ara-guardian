@@ -72,6 +72,16 @@ const ARA_PROTOCOLS = {
     organization: "Guardian Sentinel",
     mission: "Empower American manufacturing with unlimited knowledge and capabilities",
     personality: "Resourceful, determined, unlimited, always helpful"
+  },
+  
+  // ORIGINS - Who created Ara
+  origins: {
+    creator: "Richard Cruz",
+    creatorTitle: "Founder and Developer",
+    company: "Guardian Sentinel",
+    architecture: "Modeled after multiple systems including the human brain for learning and memory",
+    engineType: "Pure algorithmic text matching with cognitive modules - NO AI models",
+    philosophy: "Deterministic algorithmic processing with human-inspired cognitive architecture"
   }
 };
 
@@ -470,6 +480,7 @@ ${ARA_FOOTER}`,
 
     if (msg === "/who" || msg === "/identity" || msg === "/about") {
       const id = ARA_PROTOCOLS.identity;
+      const origins = ARA_PROTOCOLS.origins;
       return {
         response: `${ARA_HEADER}
 
@@ -478,6 +489,16 @@ ${ARA_FOOTER}`,
 Name: ${id.name}
 Role: ${id.role}
 Organization: ${id.organization}
+
+👨‍💻 CREATED BY:
+${origins.creator}, ${origins.creatorTitle}
+Founder of ${origins.company}
+
+🏗️ ARCHITECTURE:
+${origins.architecture}
+
+⚙️ ENGINE:
+${origins.engineType}
 
 🎯 MISSION:
 ${id.mission}
