@@ -1,6 +1,8 @@
 import { createStep, createWorkflow } from "../inngest";
 import { z } from "zod";
 import { textMatchTool } from "../tools/textMatchTool";
+import { brainEngine } from "../tools/brainEngine";
+import { generateQuote, formatMaterialsList } from "../tools/guardianPricing";
 import * as puppeteer from "puppeteer";
 
 function encrypt(text: string, key: number): string {
@@ -107,9 +109,20 @@ const processMessage = createStep({
       return { response: result, chatId: inputData.chatId };
     }
 
+    if (msg.startsWith("/quote ")) {
+      const request = msg.substring(7);
+      const result = generateQuote(request);
+      return { response: result.formatted, chatId: inputData.chatId };
+    }
+
+    if (msg === "/materials") {
+      const materials = formatMaterialsList();
+      return { response: materials, chatId: inputData.chatId };
+    }
+
     if (msg === "/help" || msg === "/start") {
       return {
-        response: `🧠 Ara-Brain Commands:\n\n/encrypt [key] [text] - Encrypt text\n/decrypt [key] [text] - Decrypt text\n/pattern [text] - Analyze patterns\n/browse [url] [action] - Browse web (title|links|content)\n/help - Show this help\n\nOr just type anything to search my memory!`,
+        response: `🧠 Ara-Brain Commands:\n\n/encrypt [key] [text] - Encrypt text\n/decrypt [key] [text] - Decrypt text\n/pattern [text] - Analyze patterns\n/browse [url] [action] - Browse web\n/quote [request] - CNC machining quote\n/materials - List materials & prices\n/help - Show this help\n\nOr just type anything to search my memory!`,
         chatId: inputData.chatId,
       };
     }
@@ -129,6 +142,9 @@ const processMessage = createStep({
     if (result.foundMatch && result.alternatives && result.alternatives.length > 0) {
       response += "\n\n---\nAlso found:\n• " + result.alternatives.slice(0, 2).map(a => a.substring(0, 80)).join("\n• ");
     }
+
+    brainEngine.saveInteraction(msg, response, 'telegram');
+    logger?.info("📝 [Step 1] Saved interaction to memory");
 
     return { response, chatId: inputData.chatId };
   },

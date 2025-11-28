@@ -14,6 +14,7 @@ import { inngest, inngestServe } from "./inngest";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers";
 import { araBrainWorkflow } from "./workflows/araBrainWorkflow";
 import { brainEngine } from "./tools/brainEngine";
+import { generateQuote, getMaterialsList } from "./tools/guardianPricing";
 
 // Shared memory storage (in-memory for now)
 let memoryPhrases: string[] = [
@@ -464,6 +465,8 @@ export const mastra = new Mastra({
             
             addToHistory(sessionId, 'bot', response);
             
+            brainEngine.saveInteraction(message, response, 'conversations');
+            
             const stats = getSessionStats(sessionId);
             logger?.info("✅ [Chat] Response:", { response, foundMatch, stats });
             return c.json({ response, foundMatch, historyCount: stats.messageCount, style: stats.style });
@@ -534,6 +537,131 @@ export const mastra = new Mastra({
             category,
             count: nodes.length,
             items: nodes.slice(0, 20).map(n => ({ content: n.content, weight: n.weight }))
+          });
+        },
+      },
+      {
+        path: "/brain/learn",
+        method: "POST",
+        handler: async (c) => {
+          const mastra = c.get("mastra");
+          const logger = mastra?.getLogger();
+          const { userInput, botResponse, category = 'learned' } = await c.req.json();
+          logger?.info("📝 [Brain/Learn] Saving interaction:", { userInput: userInput?.substring(0, 50) });
+          const result = brainEngine.saveInteraction(userInput, botResponse, category);
+          return c.json({ success: result.success, message: result.message, memorySize: result.newSize });
+        },
+      },
+      {
+        path: "/brain/encrypt",
+        method: "POST",
+        handler: async (c) => {
+          const mastra = c.get("mastra");
+          const logger = mastra?.getLogger();
+          logger?.info("🔐 [Brain/Encrypt] Encrypting memory file");
+          const result = brainEngine.enableEncryption();
+          return c.json(result);
+        },
+      },
+      {
+        path: "/brain/decrypt",
+        method: "POST",
+        handler: async (c) => {
+          const mastra = c.get("mastra");
+          const logger = mastra?.getLogger();
+          logger?.info("🔓 [Brain/Decrypt] Decrypting memory file");
+          const result = brainEngine.disableEncryption();
+          return c.json(result);
+        },
+      },
+      {
+        path: "/brain/status",
+        method: "GET",
+        handler: async (c) => {
+          return c.json({
+            encrypted: brainEngine.isEncrypted(),
+            memoryPath: brainEngine.getMemoryPath(),
+            stats: brainEngine.getStats()
+          });
+        },
+      },
+      {
+        path: "/quote",
+        method: "POST",
+        handler: async (c) => {
+          const mastra = c.get("mastra");
+          const logger = mastra?.getLogger();
+          const { request } = await c.req.json();
+          logger?.info("💰 [Quote] Processing request:", { request });
+          
+          const result = generateQuote(request || '');
+          
+          return c.json({ 
+            success: true, 
+            quote: {
+              material: result.material,
+              quantity: result.quantity,
+              unitPrice: result.unitPrice,
+              totalPrice: result.totalPrice,
+              weight: result.weight,
+              breakdown: result.breakdown
+            },
+            formatted: result.formatted 
+          });
+        },
+      },
+      {
+        path: "/quote/materials",
+        method: "GET",
+        handler: async (c) => {
+          const materials = getMaterialsList();
+          return c.json({ materials });
+        },
+      },
+      {
+        path: "/autopost/sites",
+        method: "GET",
+        handler: async (c) => {
+          const sites = [
+            { name: 'Craigslist', url: 'craigslist.org', category: 'general', automatable: true },
+            { name: 'OfferUp', url: 'offerup.com', category: 'general', automatable: true },
+            { name: 'Mercari', url: 'mercari.com', category: 'general', automatable: true },
+            { name: 'eBay', url: 'ebay.com', category: 'auction', automatable: true },
+            { name: 'Facebook Marketplace', url: 'facebook.com/marketplace', category: 'general', automatable: false },
+            { name: 'Poshmark', url: 'poshmark.com', category: 'fashion', automatable: true },
+            { name: 'Etsy', url: 'etsy.com', category: 'handmade', automatable: true },
+            { name: 'Depop', url: 'depop.com', category: 'fashion', automatable: true },
+            { name: 'Swappa', url: 'swappa.com', category: 'tech', automatable: true },
+            { name: 'Reverb', url: 'reverb.com', category: 'music', automatable: true },
+          ];
+          const category = c.req.query('category');
+          const filtered = category ? sites.filter(s => s.category === category) : sites;
+          return c.json({ sites: filtered, total: filtered.length });
+        },
+      },
+      {
+        path: "/autopost/generate",
+        method: "POST",
+        handler: async (c) => {
+          const { title, description, template = 'forsale', price, location } = await c.req.json();
+          
+          const templates: Record<string, string> = {
+            cashapp: `💰 INSTANT CASH - GET PAID TODAY 💰\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n{{TITLE}}\n\n{{DESC}}\n\n✅ Fast payment via Cash App\n✅ Same-day pickup available\n📲 Contact now`,
+            service: `🔧 PROFESSIONAL SERVICE 🔧\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n{{TITLE}}\n\n{{DESC}}\n\n💼 Licensed & Insured\n⭐ 5-Star Reviews\n📞 Call/Text for Quote`,
+            forsale: `🏷️ FOR SALE 🏷️\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n{{TITLE}}\n\n{{DESC}}\n\n📍 Local pickup available\n💵 Cash/Venmo/CashApp accepted\n📱 Message for details`,
+          };
+          
+          let desc = description || '';
+          if (price) desc += `\n\n💵 Price: $${price}`;
+          if (location) desc += `\n📍 Location: ${location}`;
+          
+          const ad = (templates[template] || templates.forsale).replace('{{TITLE}}', title || 'Item for Sale').replace('{{DESC}}', desc);
+          
+          return c.json({ 
+            ad, 
+            title,
+            recommendedSites: ['Craigslist', 'OfferUp', 'Mercari', 'eBay', 'Facebook Marketplace'],
+            tips: ['Post during peak hours (7-9 AM, 5-8 PM)', 'Use high-quality photos', 'Respond within 1 hour', 'Renew every 2-3 days']
           });
         },
       },

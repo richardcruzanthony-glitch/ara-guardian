@@ -1,5 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
+
+const ENCRYPTION_KEY = process.env.BRAIN_ENCRYPTION_KEY || 'ara-brain-default-key-32chars!';
+const ENCRYPTION_IV = process.env.BRAIN_ENCRYPTION_IV || '1234567890123456';
 
 interface MemoryNode {
   content: string;
@@ -37,6 +41,8 @@ class BrainEngine {
   private tokenIndex: Map<string, Set<string>> = new Map();
   private categoryIndex: Map<string, Set<string>> = new Map();
   private initialized: boolean = false;
+  private memoryFilePath: string = '';
+  private encryptionEnabled: boolean = false;
 
   constructor() {
     this.initialize();
@@ -59,7 +65,14 @@ class BrainEngine {
       try {
         if (fs.existsSync(memPath)) {
           content = fs.readFileSync(memPath, 'utf-8');
-          console.log(`🧠 [BrainEngine] Loaded memory from: ${memPath}`);
+          this.memoryFilePath = memPath;
+          if (content.startsWith('ENCRYPTED:')) {
+            content = this.decryptMemory(content.substring(10));
+            this.encryptionEnabled = true;
+            console.log(`🔐 [BrainEngine] Loaded encrypted memory from: ${memPath}`);
+          } else {
+            console.log(`🧠 [BrainEngine] Loaded memory from: ${memPath}`);
+          }
           break;
         }
       } catch (e) {}
@@ -385,6 +398,166 @@ class BrainEngine {
 
   getCategories(): string[] {
     return Array.from(this.categoryIndex.keys());
+  }
+
+  private encryptMemory(content: string): string {
+    try {
+      const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
+      const iv = Buffer.from(ENCRYPTION_IV.substring(0, 16));
+      const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+      let encrypted = cipher.update(content, 'utf8', 'base64');
+      encrypted += cipher.final('base64');
+      return encrypted;
+    } catch (e) {
+      console.error('🔐 [BrainEngine] Encryption failed:', e);
+      return content;
+    }
+  }
+
+  private decryptMemory(encrypted: string): string {
+    try {
+      const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
+      const iv = Buffer.from(ENCRYPTION_IV.substring(0, 16));
+      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+      let decrypted = decipher.update(encrypted, 'base64', 'utf8');
+      decrypted += decipher.final('utf8');
+      return decrypted;
+    } catch (e) {
+      console.error('🔐 [BrainEngine] Decryption failed:', e);
+      return '';
+    }
+  }
+
+  enableEncryption(): { success: boolean; message: string } {
+    if (!this.memoryFilePath) {
+      return { success: false, message: 'No memory file loaded' };
+    }
+    try {
+      const content = fs.readFileSync(this.memoryFilePath, 'utf-8');
+      if (content.startsWith('ENCRYPTED:')) {
+        return { success: true, message: 'Memory already encrypted' };
+      }
+      const encrypted = 'ENCRYPTED:' + this.encryptMemory(content);
+      fs.writeFileSync(this.memoryFilePath, encrypted);
+      this.encryptionEnabled = true;
+      console.log('🔐 [BrainEngine] Memory encrypted successfully');
+      return { success: true, message: 'Memory encrypted successfully' };
+    } catch (e) {
+      return { success: false, message: `Encryption failed: ${e}` };
+    }
+  }
+
+  disableEncryption(): { success: boolean; message: string } {
+    if (!this.memoryFilePath) {
+      return { success: false, message: 'No memory file loaded' };
+    }
+    try {
+      const content = fs.readFileSync(this.memoryFilePath, 'utf-8');
+      if (!content.startsWith('ENCRYPTED:')) {
+        return { success: true, message: 'Memory already decrypted' };
+      }
+      const decrypted = this.decryptMemory(content.substring(10));
+      fs.writeFileSync(this.memoryFilePath, decrypted);
+      this.encryptionEnabled = false;
+      console.log('🔓 [BrainEngine] Memory decrypted successfully');
+      return { success: true, message: 'Memory decrypted successfully' };
+    } catch (e) {
+      return { success: false, message: `Decryption failed: ${e}` };
+    }
+  }
+
+  saveInteraction(userInput: string, botResponse: string, category: string = 'learned'): { success: boolean; message: string; newSize: number } {
+    if (!this.memoryFilePath) {
+      return { success: false, message: 'No memory file path', newSize: this.longTermMemory.size };
+    }
+    
+    const timestamp = new Date().toISOString().split('T')[0];
+    const userEntry = `[${timestamp}] User: ${userInput.replace(/\n/g, ' ')}`;
+    const botEntry = `[${timestamp}] Ara: ${botResponse.replace(/\n/g, ' ')}`;
+    
+    try {
+      let content = fs.readFileSync(this.memoryFilePath, 'utf-8');
+      const wasEncrypted = content.startsWith('ENCRYPTED:');
+      
+      if (wasEncrypted) {
+        content = this.decryptMemory(content.substring(10));
+      }
+      
+      const categoryHeader = `\n================================================================================\n${category.toUpperCase()}\n================================================================================\n`;
+      
+      if (!content.includes(categoryHeader)) {
+        content += categoryHeader;
+      }
+      
+      content += `\n${userEntry}\n${botEntry}\n`;
+      
+      if (wasEncrypted || this.encryptionEnabled) {
+        const encrypted = 'ENCRYPTED:' + this.encryptMemory(content);
+        fs.writeFileSync(this.memoryFilePath, encrypted);
+      } else {
+        fs.writeFileSync(this.memoryFilePath, content);
+      }
+      
+      const userTokens = this.tokenize(userInput);
+      const userId = this.generateId(userEntry);
+      const userNode: MemoryNode = {
+        content: userEntry,
+        tokens: userTokens,
+        weight: 1.2,
+        connections: new Map(),
+        lastAccessed: Date.now(),
+        accessCount: 1,
+        category: category.toLowerCase()
+      };
+      this.longTermMemory.set(userId, userNode);
+      
+      for (const token of userTokens) {
+        if (!this.tokenIndex.has(token)) {
+          this.tokenIndex.set(token, new Set());
+        }
+        this.tokenIndex.get(token)!.add(userId);
+      }
+      
+      const botTokens = this.tokenize(botResponse);
+      const botId = this.generateId(botEntry);
+      const botNode: MemoryNode = {
+        content: botEntry,
+        tokens: botTokens,
+        weight: 1.2,
+        connections: new Map(),
+        lastAccessed: Date.now(),
+        accessCount: 1,
+        category: category.toLowerCase()
+      };
+      this.longTermMemory.set(botId, botNode);
+      
+      for (const token of botTokens) {
+        if (!this.tokenIndex.has(token)) {
+          this.tokenIndex.set(token, new Set());
+        }
+        this.tokenIndex.get(token)!.add(botId);
+      }
+      
+      if (!this.categoryIndex.has(category.toLowerCase())) {
+        this.categoryIndex.set(category.toLowerCase(), new Set());
+      }
+      this.categoryIndex.get(category.toLowerCase())!.add(userId);
+      this.categoryIndex.get(category.toLowerCase())!.add(botId);
+      
+      console.log(`📝 [BrainEngine] Saved interaction to memory: ${userInput.substring(0, 30)}... (${this.longTermMemory.size} nodes)`);
+      return { success: true, message: 'Interaction saved to memory', newSize: this.longTermMemory.size };
+    } catch (e) {
+      console.error('📝 [BrainEngine] Failed to save interaction:', e);
+      return { success: false, message: `Failed to save: ${e}`, newSize: this.longTermMemory.size };
+    }
+  }
+
+  isEncrypted(): boolean {
+    return this.encryptionEnabled;
+  }
+
+  getMemoryPath(): string {
+    return this.memoryFilePath;
   }
 }
 
