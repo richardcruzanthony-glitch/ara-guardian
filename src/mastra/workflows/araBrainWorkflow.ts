@@ -5,6 +5,14 @@ import { brainEngine } from "../tools/brainEngine";
 import { generateQuote, formatMaterialsList } from "../tools/guardianPricing";
 import * as puppeteer from "puppeteer";
 
+const ARA_HEADER = `🛡️ GUARDIAN SENTINEL
+━━━━━━━━━━━━━━━━━━━━━━━
+🧠 Powered by Ara-Brain AI Engine
+━━━━━━━━━━━━━━━━━━━━━━━`;
+
+const ARA_FOOTER = `━━━━━━━━━━━━━━━━━━━━━━━
+🛡️ Guardian Sentinel | Precision CNC Manufacturing`;
+
 function encrypt(text: string, key: number): string {
   return text.split("").map(char => String.fromCharCode(char.charCodeAt(0) + key)).join("");
 }
@@ -112,17 +120,165 @@ const processMessage = createStep({
     if (msg.startsWith("/quote ")) {
       const request = msg.substring(7);
       const result = generateQuote(request);
-      return { response: result.formatted, chatId: inputData.chatId };
+      return { response: `${ARA_HEADER}\n\n${result.formatted}\n\n${ARA_FOOTER}`, chatId: inputData.chatId };
     }
 
     if (msg === "/materials") {
       const materials = formatMaterialsList();
-      return { response: materials, chatId: inputData.chatId };
+      return { response: `${ARA_HEADER}\n\n${materials}\n\n${ARA_FOOTER}`, chatId: inputData.chatId };
+    }
+
+    if (msg === "/status" || msg === "/brain") {
+      const stats = brainEngine.getCognitiveStats();
+      return {
+        response: `${ARA_HEADER}
+
+📊 BRAIN STATUS
+
+🧠 Knowledge Base:
+• Long-term Memory: ${stats.memory.longTerm.toLocaleString()} nodes
+• Episodic Memory: ${stats.memory.episodic} episodes
+• Working Memory: ${stats.memory.working} items
+
+📚 Learning:
+• Patterns: ${stats.learning.patterns}
+• Associations: ${stats.learning.associations}
+• Reinforcements: ${stats.learning.reinforcements}
+
+🔍 Reasoning:
+• Inference Rules: ${stats.reasoning.rules}
+• Causal Chains: ${stats.reasoning.causalChains}
+
+🔧 Problem Solving:
+• Attempts: ${stats.problemSolving.attempts}
+• Solutions: ${stats.problemSolving.solutions}
+
+✨ Creativity:
+• Generated: ${stats.creativity.generated}
+• Combinations: ${stats.creativity.combinations}
+
+${ARA_FOOTER}`,
+        chatId: inputData.chatId,
+      };
+    }
+
+    if (msg.startsWith("/reason ")) {
+      const premise = msg.substring(8);
+      const memories = brainEngine.recall(premise, 5);
+      const result = brainEngine.reason(premise, memories);
+      return {
+        response: `${ARA_HEADER}
+
+🔍 REASONING
+
+Premise: "${premise}"
+
+Response:
+${result.response}
+
+Reasoning:
+${result.reasoning.map((r: string) => `→ ${r}`).join('\n')}
+
+Confidence: ${(result.confidence * 100).toFixed(0)}%
+
+${ARA_FOOTER}`,
+        chatId: inputData.chatId,
+      };
+    }
+
+    if (msg.startsWith("/solve ")) {
+      const problem = msg.substring(7);
+      const result = brainEngine.solve(problem);
+      return {
+        response: `${ARA_HEADER}
+
+🔧 PROBLEM SOLVING
+
+Problem: "${problem}"
+
+Method: ${result.method}
+Confidence: ${(result.confidence * 100).toFixed(0)}%
+
+Solution:
+${result.solution}
+
+Steps:
+${result.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+${ARA_FOOTER}`,
+        chatId: inputData.chatId,
+      };
+    }
+
+    if (msg.startsWith("/create ")) {
+      const prompt = msg.substring(8);
+      const result = brainEngine.generate(prompt, 'creative');
+      return {
+        response: `${ARA_HEADER}
+
+✨ CREATIVE OUTPUT
+
+Prompt: "${prompt}"
+
+${result.text}
+
+Confidence: ${(result.confidence * 100).toFixed(0)}%
+
+${ARA_FOOTER}`,
+        chatId: inputData.chatId,
+      };
+    }
+
+    if (msg.startsWith("/learn ")) {
+      const content = msg.substring(7);
+      brainEngine.learn(content, 'positive');
+      brainEngine.reinforceConcept(content, 1.5);
+      return {
+        response: `${ARA_HEADER}
+
+📚 LEARNED
+
+I've added this to my knowledge:
+"${content}"
+
+This has been reinforced in my memory.
+
+${ARA_FOOTER}`,
+        chatId: inputData.chatId,
+      };
     }
 
     if (msg === "/help" || msg === "/start") {
       return {
-        response: `🧠 Ara-Brain Commands:\n\n/encrypt [key] [text] - Encrypt text\n/decrypt [key] [text] - Decrypt text\n/pattern [text] - Analyze patterns\n/browse [url] [action] - Browse web\n/quote [request] - CNC machining quote\n/materials - List materials & prices\n/help - Show this help\n\nOr just type anything to search my memory!`,
+        response: `${ARA_HEADER}
+
+🧠 COMMANDS
+
+📊 Status & Info:
+/status - Brain stats & metrics
+/materials - Materials & pricing
+
+💰 Quotes:
+/quote [request] - Get CNC quote
+  Example: /quote 25 pieces 7075 4x4x1
+
+🧠 Cognitive:
+/reason [premise] - Logical reasoning
+/solve [problem] - Problem solving
+/create [prompt] - Creative generation
+/learn [content] - Teach me something
+
+🔐 Security:
+/encrypt [key] [text] - Encrypt
+/decrypt [key] [text] - Decrypt
+
+🌐 Web:
+/browse [url] - Fetch web content
+/pattern [text] - Analyze patterns
+
+Or just ask me anything!
+
+${ARA_FOOTER}`,
         chatId: inputData.chatId,
       };
     }
