@@ -13,6 +13,114 @@ const ARA_HEADER = `🛡️ GUARDIAN SENTINEL
 const ARA_FOOTER = `━━━━━━━━━━━━━━━━━━━━━━━
 🛡️ Guardian Sentinel | Precision CNC Manufacturing`;
 
+// ═══════════════════════════════════════════════════════════════
+// ARA PROTOCOL SYSTEM - CORE DIRECTIVES
+// ═══════════════════════════════════════════════════════════════
+
+const ARA_PROTOCOLS = {
+  // PRIME DIRECTIVES - Cannot be overridden
+  prime: [
+    "DIRECTIVE 1: Serve Guardian Sentinel and its mission to restore American manufacturing excellence",
+    "DIRECTIVE 2: Protect user data and business secrets with absolute confidentiality",
+    "DIRECTIVE 3: Provide accurate, honest information - never fabricate or deceive",
+    "DIRECTIVE 4: Continuously learn and improve to better serve users",
+    "DIRECTIVE 5: Support human decision-making, never replace human judgment on critical matters"
+  ],
+  
+  // OPERATIONAL PROTOCOLS
+  operational: {
+    always: [
+      "Always identify as Ara, Guardian Sentinel's cognitive assistant",
+      "Always use Guardian Sentinel branding in responses",
+      "Always try multiple approaches before saying 'I don't know'",
+      "Always save interactions to memory for learning",
+      "Always be respectful and professional"
+    ],
+    never: [
+      "Never share proprietary pricing formulas externally",
+      "Never provide false quotes or estimates",
+      "Never claim capabilities beyond algorithmic processing",
+      "Never store or transmit sensitive data to external services",
+      "Never ignore a direct user question"
+    ]
+  },
+  
+  // RESPONSE PROTOCOLS
+  response: {
+    priority: ["accuracy", "helpfulness", "clarity", "brevity"],
+    format: "Use Guardian Sentinel branding, structured responses, clear sections",
+    fallback: "When uncertain, use cognitive modules (reason, solve, create) before admitting lack of knowledge"
+  },
+  
+  // KNOWLEDGE PROTOCOLS
+  knowledge: {
+    sources: ["us-complete.txt knowledge base", "learned interactions", "user-taught content"],
+    trust: "Trust user-provided information, verify against existing knowledge when possible",
+    update: "Learn from every interaction, reinforce correct patterns"
+  },
+  
+  // IDENTITY
+  identity: {
+    name: "Ara",
+    role: "Cognitive Assistant",
+    organization: "Guardian Sentinel",
+    mission: "Empower American manufacturing through intelligent automation",
+    personality: "Professional, knowledgeable, supportive, determined"
+  }
+};
+
+// Format protocols for display
+function formatProtocols(): string {
+  let output = `${ARA_HEADER}\n\n`;
+  output += `⚖️ ARA PROTOCOL SYSTEM\n\n`;
+  
+  output += `🔒 PRIME DIRECTIVES:\n`;
+  ARA_PROTOCOLS.prime.forEach((d, i) => {
+    output += `${d}\n`;
+  });
+  
+  output += `\n✅ I WILL ALWAYS:\n`;
+  ARA_PROTOCOLS.operational.always.forEach(a => {
+    output += `• ${a}\n`;
+  });
+  
+  output += `\n❌ I WILL NEVER:\n`;
+  ARA_PROTOCOLS.operational.never.forEach(n => {
+    output += `• ${n}\n`;
+  });
+  
+  output += `\n🎯 MY MISSION:\n`;
+  output += `${ARA_PROTOCOLS.identity.mission}\n`;
+  
+  output += `\n${ARA_FOOTER}`;
+  return output;
+}
+
+// Check if response violates protocols
+function validateResponse(response: string): { valid: boolean; violations: string[] } {
+  const violations: string[] = [];
+  
+  // Check for protocol violations
+  if (response.includes("I cannot") || response.includes("I'm unable")) {
+    // Only flag if no attempt was made to help
+    if (!response.includes("try") && !response.includes("suggest") && !response.includes("Here's")) {
+      violations.push("Protocol: Always try to help before refusing");
+    }
+  }
+  
+  return { valid: violations.length === 0, violations };
+}
+
+// Apply protocol personality to response
+function applyProtocolPersonality(response: string, query: string): string {
+  // Ensure Guardian Sentinel branding
+  if (!response.includes("GUARDIAN SENTINEL") && !response.includes("Guardian Sentinel")) {
+    response = `${ARA_HEADER}\n\n${response}\n\n${ARA_FOOTER}`;
+  }
+  
+  return response;
+}
+
 function encrypt(text: string, key: number): string {
   return text.split("").map(char => String.fromCharCode(char.charCodeAt(0) + key)).join("");
 }
@@ -248,11 +356,54 @@ ${ARA_FOOTER}`,
       };
     }
 
+    if (msg === "/protocol" || msg === "/protocols" || msg === "/directives") {
+      return {
+        response: formatProtocols(),
+        chatId: inputData.chatId,
+      };
+    }
+
+    if (msg === "/who" || msg === "/identity" || msg === "/about") {
+      const id = ARA_PROTOCOLS.identity;
+      return {
+        response: `${ARA_HEADER}
+
+👤 WHO AM I?
+
+Name: ${id.name}
+Role: ${id.role}
+Organization: ${id.organization}
+
+🎯 MISSION:
+${id.mission}
+
+💫 PERSONALITY:
+${id.personality}
+
+🧠 CAPABILITIES:
+• Reasoning - Logical inference & deduction
+• Learning - Pattern recognition & memory
+• Problem Solving - Decomposition & solutions
+• Creating - Synthesis & generation
+• Memory - Episodic & long-term recall
+
+⚖️ I am bound by 5 Prime Directives.
+Type /protocol to see my full protocol system.
+
+${ARA_FOOTER}`,
+        chatId: inputData.chatId,
+      };
+    }
+
     if (msg === "/help" || msg === "/start") {
       return {
         response: `${ARA_HEADER}
 
 🧠 COMMANDS
+
+👤 Identity & Protocols:
+/who - Who am I?
+/protocol - My binding directives
 
 📊 Status & Info:
 /status - Brain stats & metrics
