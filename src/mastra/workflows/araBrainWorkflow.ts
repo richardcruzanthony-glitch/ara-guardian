@@ -77,10 +77,10 @@ const ARA_PROTOCOLS = {
 
 // Timeout configuration - Ara listens patiently
 const ARA_TIMEOUTS = {
-  webSearch: 60000,      // 60 seconds for web searches
-  pageLoad: 45000,       // 45 seconds for page loading
-  browserAction: 30000,  // 30 seconds for browser actions
-  processing: 120000,    // 2 minutes for complex processing
+  webSearch: 65000,      // 65 seconds for web searches
+  pageLoad: 50000,       // 50 seconds for page loading
+  browserAction: 35000,  // 35 seconds for browser actions
+  processing: 125000,    // 2 min 5 sec for complex processing
 };
 
 // Web search function to gather new information
