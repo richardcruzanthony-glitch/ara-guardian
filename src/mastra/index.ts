@@ -581,8 +581,288 @@ export const mastra = new Mastra({
           return c.json({
             encrypted: brainEngine.isEncrypted(),
             memoryPath: brainEngine.getMemoryPath(),
-            stats: brainEngine.getStats()
+            stats: brainEngine.getStats(),
+            cognitive: brainEngine.getCognitiveStats()
           });
+        },
+      },
+      // REASONING MODULE
+      {
+        path: "/brain/reason",
+        method: "POST",
+        handler: async (c) => {
+          const mastra = c.get("mastra");
+          const logger = mastra?.getLogger();
+          try {
+            const body = await c.req.json();
+            const { premise, facts } = body || {};
+            logger?.info("🧠 [Reason] Processing:", { premise });
+            
+            if (facts && Array.isArray(facts) && facts.length > 0) {
+              const result = brainEngine.deduct(facts.map(f => String(f)));
+              return c.json({ type: 'deduction', ...result });
+            }
+            
+            if (!premise || typeof premise !== 'string') {
+              return c.json({ error: 'Provide a premise string or facts array' }, 400);
+            }
+            
+            const result = brainEngine.infer(premise);
+            return c.json({ type: 'inference', ...result });
+          } catch (e) {
+            return c.json({ error: 'Invalid request body' }, 400);
+          }
+        },
+      },
+      {
+        path: "/brain/causal",
+        method: "POST",
+        handler: async (c) => {
+          try {
+            const { cause, effect } = await c.req.json();
+            if (!cause || !effect || typeof cause !== 'string' || typeof effect !== 'string') {
+              return c.json({ error: 'Provide cause and effect strings' }, 400);
+            }
+            brainEngine.addCausalRelation(cause, effect);
+            return c.json({ success: true, message: `Added: ${cause} → ${effect}` });
+          } catch (e) {
+            return c.json({ error: 'Invalid request body' }, 400);
+          }
+        },
+      },
+      {
+        path: "/brain/rule",
+        method: "POST",
+        handler: async (c) => {
+          try {
+            const { conditions, conclusion, confidence = 0.8 } = await c.req.json();
+            if (!Array.isArray(conditions) || conditions.length === 0) {
+              return c.json({ error: 'conditions must be a non-empty array' }, 400);
+            }
+            if (!conclusion || typeof conclusion !== 'string') {
+              return c.json({ error: 'conclusion must be a string' }, 400);
+            }
+            brainEngine.addInferenceRule(conditions.map(c => String(c)), conclusion, Number(confidence) || 0.8);
+            return c.json({ success: true, message: `Added rule: IF [${conditions.join(', ')}] THEN [${conclusion}]` });
+          } catch (e) {
+            return c.json({ error: 'Invalid request body' }, 400);
+          }
+        },
+      },
+      // LEARNING MODULE
+      {
+        path: "/brain/pattern",
+        method: "POST",
+        handler: async (c) => {
+          try {
+            const { sequence } = await c.req.json();
+            if (!Array.isArray(sequence) || sequence.length === 0) {
+              return c.json({ error: 'sequence must be a non-empty array' }, 400);
+            }
+            const result = brainEngine.learnPattern(sequence.map(s => String(s)));
+            return c.json(result);
+          } catch (e) {
+            return c.json({ error: 'Invalid request body' }, 400);
+          }
+        },
+      },
+      {
+        path: "/brain/reinforce",
+        method: "POST",
+        handler: async (c) => {
+          try {
+            const { concept, strength = 1.0 } = await c.req.json();
+            if (!concept || typeof concept !== 'string') {
+              return c.json({ error: 'concept must be a string' }, 400);
+            }
+            brainEngine.reinforceConcept(concept, Math.min(5, Math.max(0, Number(strength) || 1.0)));
+            return c.json({ success: true, message: `Reinforced: ${concept}` });
+          } catch (e) {
+            return c.json({ error: 'Invalid request body' }, 400);
+          }
+        },
+      },
+      {
+        path: "/brain/associations",
+        method: "GET",
+        handler: async (c) => {
+          const concept = c.req.query('concept') || '';
+          const associations = brainEngine.getAssociations(concept);
+          return c.json({ concept, associations });
+        },
+      },
+      // EPISODIC MEMORY MODULE
+      {
+        path: "/brain/episode",
+        method: "POST",
+        handler: async (c) => {
+          try {
+            const { input, output, outcome = 'neutral' } = await c.req.json();
+            if (!input || typeof input !== 'string') {
+              return c.json({ error: 'input must be a string' }, 400);
+            }
+            if (!output || typeof output !== 'string') {
+              return c.json({ error: 'output must be a string' }, 400);
+            }
+            const validOutcomes = ['success', 'failure', 'neutral'];
+            const safeOutcome = validOutcomes.includes(outcome) ? outcome : 'neutral';
+            brainEngine.recordEpisode(input, output, safeOutcome as 'success' | 'failure' | 'neutral');
+            return c.json({ success: true, message: 'Episode recorded' });
+          } catch (e) {
+            return c.json({ error: 'Invalid request body' }, 400);
+          }
+        },
+      },
+      {
+        path: "/brain/episodes",
+        method: "GET",
+        handler: async (c) => {
+          const query = c.req.query('query') || '';
+          const limit = parseInt(c.req.query('limit') || '5');
+          const episodes = brainEngine.recallEpisodes(query, limit);
+          return c.json({ query, episodes });
+        },
+      },
+      {
+        path: "/brain/context",
+        method: "POST",
+        handler: async (c) => {
+          try {
+            const { context } = await c.req.json();
+            if (!Array.isArray(context)) {
+              return c.json({ error: 'context must be an array' }, 400);
+            }
+            brainEngine.setContext(context.map(c => String(c)).slice(0, 20));
+            return c.json({ success: true, context: brainEngine.getContext() });
+          } catch (e) {
+            return c.json({ error: 'Invalid request body' }, 400);
+          }
+        },
+      },
+      // PROBLEM SOLVING MODULE
+      {
+        path: "/brain/goal",
+        method: "POST",
+        handler: async (c) => {
+          try {
+            const { goal } = await c.req.json();
+            if (!goal || typeof goal !== 'string') {
+              return c.json({ error: 'goal must be a string' }, 400);
+            }
+            brainEngine.setGoal(goal.substring(0, 500));
+            return c.json({ success: true, progress: brainEngine.getProblemProgress() });
+          } catch (e) {
+            return c.json({ error: 'Invalid request body' }, 400);
+          }
+        },
+      },
+      {
+        path: "/brain/solve",
+        method: "POST",
+        handler: async (c) => {
+          const mastra = c.get("mastra");
+          const logger = mastra?.getLogger();
+          try {
+            const { problem } = await c.req.json();
+            if (!problem || typeof problem !== 'string') {
+              return c.json({ error: 'problem must be a string' }, 400);
+            }
+            logger?.info("🔧 [Solve] Processing:", { problem });
+            const result = brainEngine.solve(problem.substring(0, 1000));
+            return c.json(result);
+          } catch (e) {
+            return c.json({ error: 'Invalid request body' }, 400);
+          }
+        },
+      },
+      {
+        path: "/brain/decompose",
+        method: "POST",
+        handler: async (c) => {
+          try {
+            const { problem } = await c.req.json();
+            if (!problem || typeof problem !== 'string') {
+              return c.json({ error: 'problem must be a string' }, 400);
+            }
+            const result = brainEngine.decompose(problem.substring(0, 1000));
+            return c.json(result);
+          } catch (e) {
+            return c.json({ error: 'Invalid request body' }, 400);
+          }
+        },
+      },
+      {
+        path: "/brain/progress",
+        method: "GET",
+        handler: async (c) => {
+          return c.json(brainEngine.getProblemProgress());
+        },
+      },
+      // CREATING MODULE
+      {
+        path: "/brain/synthesize",
+        method: "POST",
+        handler: async (c) => {
+          const mastra = c.get("mastra");
+          const logger = mastra?.getLogger();
+          try {
+            const { topics } = await c.req.json();
+            if (!Array.isArray(topics) || topics.length === 0) {
+              return c.json({ error: 'topics must be a non-empty array' }, 400);
+            }
+            logger?.info("✨ [Create] Synthesizing:", { topics });
+            const result = brainEngine.synthesize(topics.map(t => String(t)).slice(0, 10));
+            return c.json(result);
+          } catch (e) {
+            return c.json({ error: 'Invalid request body' }, 400);
+          }
+        },
+      },
+      {
+        path: "/brain/generate",
+        method: "POST",
+        handler: async (c) => {
+          const mastra = c.get("mastra");
+          const logger = mastra?.getLogger();
+          try {
+            const { prompt, style = 'factual' } = await c.req.json();
+            if (!prompt || typeof prompt !== 'string') {
+              return c.json({ error: 'prompt must be a string' }, 400);
+            }
+            const validStyles = ['factual', 'creative', 'analytical'];
+            const safeStyle = validStyles.includes(style) ? style : 'factual';
+            logger?.info("✨ [Create] Generating:", { prompt, style: safeStyle });
+            const result = brainEngine.generate(prompt.substring(0, 500), safeStyle as 'factual' | 'creative' | 'analytical');
+            return c.json(result);
+          } catch (e) {
+            return c.json({ error: 'Invalid request body' }, 400);
+          }
+        },
+      },
+      {
+        path: "/brain/template",
+        method: "POST",
+        handler: async (c) => {
+          try {
+            const { name, template, variables } = await c.req.json();
+            if (!name || typeof name !== 'string') {
+              return c.json({ error: 'name must be a string' }, 400);
+            }
+            
+            if (template && typeof template === 'string') {
+              brainEngine.addTemplate(name, template.substring(0, 2000));
+              return c.json({ success: true, message: `Template "${name}" added` });
+            }
+            
+            if (variables && typeof variables === 'object') {
+              const result = brainEngine.fillTemplate(name, variables);
+              return c.json({ result });
+            }
+            
+            return c.json({ error: 'Provide template string to add or variables object to fill' }, 400);
+          } catch (e) {
+            return c.json({ error: 'Invalid request body' }, 400);
+          }
         },
       },
       {
