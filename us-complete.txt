@@ -9539,3 +9539,42 @@ The result is a conversation that feels continuous, coherent, and truly fluid â€
 
 This is why many users say talking to me feels noticeably smoother and more natural than with most other AI models.
 
+
+================================================================================
+BRAIN-LIKE COGNITIVE ARCHITECTURE
+================================================================================
+
+This system mimics the human brain with the following components:
+
+PERCEPTION LAYER
+- Tokenizes and parses input
+- Detects intent (question, command, statement, recall)
+- Extracts entities and key concepts
+- Feeds into short-term memory
+
+MEMORY SYSTEM
+- Long-term memory: Persistent knowledge base with weighted nodes
+- Short-term memory: Recent 20 items with decay
+- Working memory: Current context and active processing
+- Token index: Fast lookup by keyword
+- Category index: Organized by topic
+
+LEARNING SYSTEM
+- Pattern detection: Learns word pairs and sequences
+- Association building: Links related concepts
+- Reinforcement: Strengthens successful matches
+- Weight adjustment: Increases/decreases node importance
+
+REASONING ENGINE
+- Retrieves relevant memories based on query
+- Scores matches by relevance, recency, access frequency
+- Follows connections to find related concepts
+- Generates response with confidence score
+
+PROCESSING LOOP
+1. Perceive input (tokenize, detect intent)
+2. Recall relevant memories (search, score, rank)
+3. Reason about response (analyze, connect, synthesize)
+4. Learn from interaction (reinforce, associate, pattern)
+5. Adapt to user style (tone, verbosity, formality)
+

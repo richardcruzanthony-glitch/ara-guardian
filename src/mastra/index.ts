@@ -13,6 +13,7 @@ import { inngest, inngestServe } from "./inngest";
 
 import { registerTelegramTrigger } from "../triggers/telegramTriggers";
 import { araBrainWorkflow } from "./workflows/araBrainWorkflow";
+import { brainEngine } from "./tools/brainEngine";
 
 // Shared memory storage (in-memory for now)
 let memoryPhrases: string[] = [
@@ -438,12 +439,23 @@ export const mastra = new Mastra({
             }
             
             if (!foundMatch) {
-              const match = memoryPhrases.find((line) => line.includes(searchLower));
-              if (match) {
-                response = match;
+              const brainResult = brainEngine.process(message);
+              if (brainResult.confidence > 0.3 && brainResult.memoryHits > 0) {
+                response = brainResult.response;
                 foundMatch = true;
+                logger?.info("🧠 [Brain] Processed:", { 
+                  confidence: brainResult.confidence, 
+                  memoryHits: brainResult.memoryHits,
+                  reasoning: brainResult.reasoning 
+                });
               } else {
-                response = "got it. what now, brother?";
+                const match = memoryPhrases.find((line) => line.includes(searchLower));
+                if (match) {
+                  response = match;
+                  foundMatch = true;
+                } else {
+                  response = "got it. what now, brother?";
+                }
               }
             }
             
@@ -482,6 +494,46 @@ export const mastra = new Mastra({
             durationMs: stats.duration,
             durationMinutes: Math.round(stats.duration / 60000),
             style: stats.style
+          });
+        },
+      },
+      {
+        path: "/brain/stats",
+        method: "GET",
+        handler: async (c) => {
+          const stats = brainEngine.getStats();
+          const categories = brainEngine.getCategories();
+          return c.json({ 
+            brain: stats,
+            categories,
+            status: 'active'
+          });
+        },
+      },
+      {
+        path: "/brain/search",
+        method: "POST",
+        handler: async (c) => {
+          const { query, limit = 5 } = await c.req.json();
+          const result = brainEngine.process(query);
+          return c.json({
+            response: result.response,
+            confidence: result.confidence,
+            memoryHits: result.memoryHits,
+            reasoning: result.reasoning
+          });
+        },
+      },
+      {
+        path: "/brain/category",
+        method: "GET",
+        handler: async (c) => {
+          const category = c.req.query('name') || 'general';
+          const nodes = brainEngine.searchByCategory(category);
+          return c.json({
+            category,
+            count: nodes.length,
+            items: nodes.slice(0, 20).map(n => ({ content: n.content, weight: n.weight }))
           });
         },
       },
