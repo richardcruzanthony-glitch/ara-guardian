@@ -6,6 +6,7 @@ import pino from "pino";
 import { MCPServer } from "@mastra/mcp";
 import { NonRetriableError } from "inngest";
 import { z } from "zod";
+import puppeteer from "puppeteer";
 
 import { sharedPostgresStorage } from "./storage";
 import { inngest, inngestServe } from "./inngest";
@@ -250,6 +251,36 @@ export const mastra = new Mastra({
         </div>
         <div class="tool-output" id="patternOutput"></div>
       </div>
+      
+      <div class="tool-section">
+        <h3 class="tool-title">Script Runner</h3>
+        <div class="info">Write and execute JavaScript code</div>
+        <textarea id="scriptInput" rows="5" placeholder="// Write your JavaScript here...
+console.log('Hello!');
+return 2 + 2;"></textarea>
+        <div class="tool-row" style="margin-top:10px;">
+          <button onclick="runScript()">Run Script</button>
+          <button onclick="document.getElementById('scriptInput').value=''" style="background:#555;">Clear</button>
+        </div>
+        <div class="tool-output" id="scriptOutput"></div>
+      </div>
+      
+      <div class="tool-section">
+        <h3 class="tool-title">Browser</h3>
+        <div class="info">Open URLs, take screenshots, extract page content</div>
+        <div class="tool-row">
+          <input type="text" id="browserUrl" placeholder="https://example.com">
+          <select id="browserAction" style="width:120px;padding:10px;background:#0f0f23;color:#eee;border:none;border-radius:8px;">
+            <option value="screenshot">Screenshot</option>
+            <option value="content">Get Text</option>
+            <option value="title">Get Title</option>
+            <option value="links">Get Links</option>
+          </select>
+          <button onclick="browserAction()">Go</button>
+        </div>
+        <div class="tool-output" id="browserOutput"></div>
+        <img id="screenshotImg" style="display:none;max-width:100%;margin-top:10px;border-radius:8px;">
+      </div>
     </div>
     
     <div id="resourcesPanel" class="panel">
@@ -400,6 +431,38 @@ export const mastra = new Mastra({
       output.innerHTML = data.patterns.map(p => '<div class="pattern-item"><span class="pattern-label">' + p.type + ':</span> ' + p.value + '</div>').join('');
     }
     
+    async function runScript() {
+      const code = document.getElementById('scriptInput').value;
+      if (!code.trim()) return;
+      document.getElementById('scriptOutput').textContent = 'Running...';
+      try {
+        const res = await fetch('/tools/script', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
+        const data = await res.json();
+        document.getElementById('scriptOutput').innerHTML = '<pre style="margin:0;white-space:pre-wrap;">' + (data.logs ? data.logs.join('\\n') + '\\n' : '') + (data.result !== undefined ? 'Result: ' + JSON.stringify(data.result) : '') + (data.error ? 'Error: ' + data.error : '') + '</pre>';
+      } catch (e) { document.getElementById('scriptOutput').textContent = 'Error: ' + e.message; }
+    }
+    
+    async function browserAction() {
+      const url = document.getElementById('browserUrl').value;
+      const action = document.getElementById('browserAction').value;
+      if (!url) return;
+      document.getElementById('browserOutput').textContent = 'Loading...';
+      document.getElementById('screenshotImg').style.display = 'none';
+      try {
+        const res = await fetch('/tools/browser', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url, action }) });
+        const data = await res.json();
+        if (data.screenshot) {
+          document.getElementById('screenshotImg').src = 'data:image/png;base64,' + data.screenshot;
+          document.getElementById('screenshotImg').style.display = 'block';
+          document.getElementById('browserOutput').textContent = 'Screenshot captured';
+        } else if (data.links) {
+          document.getElementById('browserOutput').innerHTML = data.links.slice(0,20).map(l => '<div class="pattern-item">' + l + '</div>').join('');
+        } else {
+          document.getElementById('browserOutput').innerHTML = '<pre style="margin:0;white-space:pre-wrap;">' + (data.result || data.error || 'No result') + '</pre>';
+        }
+      } catch (e) { document.getElementById('browserOutput').textContent = 'Error: ' + e.message; }
+    }
+    
     input.focus();
     loadMemory();
   </script>
@@ -525,6 +588,63 @@ export const mastra = new Mastra({
           if (patterns.length === 2) patterns.unshift({ type: 'Patterns', value: 'No special patterns detected' });
           
           return c.json({ patterns });
+        },
+      },
+      {
+        path: "/tools/script",
+        method: "POST",
+        handler: async (c) => {
+          const { code } = await c.req.json();
+          const logs: string[] = [];
+          const mockConsole = {
+            log: (...args: any[]) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')),
+            error: (...args: any[]) => logs.push('ERROR: ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')),
+            warn: (...args: any[]) => logs.push('WARN: ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')),
+          };
+          try {
+            const fn = new Function('console', 'Math', 'Date', 'JSON', 'Array', 'Object', 'String', 'Number', code);
+            const result = fn(mockConsole, Math, Date, JSON, Array, Object, String, Number);
+            return c.json({ result, logs });
+          } catch (e: any) {
+            return c.json({ error: e.message, logs });
+          }
+        },
+      },
+      {
+        path: "/tools/browser",
+        method: "POST",
+        handler: async (c) => {
+          const { url, action } = await c.req.json();
+          let browser;
+          try {
+            browser = await puppeteer.launch({ headless: true, executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/nix/store/khk7xpgsm5insk81azy9d560yq4npf77-chromium-131.0.6778.204/bin/chromium', args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'] });
+            const page = await browser.newPage();
+            await page.setViewport({ width: 1280, height: 720 });
+            await page.goto(url, { waitUntil: 'networkidle2', timeout: 15000 });
+            
+            if (action === 'screenshot') {
+              const screenshot = await page.screenshot({ encoding: 'base64' });
+              await browser.close();
+              return c.json({ screenshot });
+            } else if (action === 'content') {
+              const text = await page.evaluate(() => document.body.innerText);
+              await browser.close();
+              return c.json({ result: text.substring(0, 5000) });
+            } else if (action === 'title') {
+              const title = await page.title();
+              await browser.close();
+              return c.json({ result: title });
+            } else if (action === 'links') {
+              const links = await page.evaluate(() => Array.from(document.querySelectorAll('a')).map(a => a.href).filter(h => h.startsWith('http')));
+              await browser.close();
+              return c.json({ links: [...new Set(links)] });
+            }
+            await browser.close();
+            return c.json({ result: 'Unknown action' });
+          } catch (e: any) {
+            if (browser) await browser.close();
+            return c.json({ error: e.message });
+          }
         },
       },
       {

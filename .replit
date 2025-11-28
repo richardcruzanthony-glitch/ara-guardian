@@ -6,7 +6,7 @@ integrations = ["javascript_openai_ai_integrations:1.0.0", "agentstack-trigger-t
 
 [nix]
 channel = "stable-24_11"
-packages = ["jq"]
+packages = ["jq", "chromium", "glib", "nss", "nspr", "at-spi2-atk", "cups", "libdrm", "expat", "xorg.libxcb", "xorg.libX11", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXext", "xorg.libXfixes", "xorg.libXrandr", "mesa", "alsa-lib", "pango", "cairo", "gtk3"]
 
 [env]
 MASTRA_HIDE_CLOUD_CTA = "true"
@@ -27,10 +27,6 @@ externalPort = 80
 
 [[ports]]
 localPort = 8289
-
-[[ports]]
-localPort = 42027
-externalPort = 3003
 
 [[ports]]
 localPort = 50052
