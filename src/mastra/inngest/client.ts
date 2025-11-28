@@ -10,7 +10,7 @@ export const inngest = new Inngest(
       }
     : {
         id: "mastra",
-        baseUrl: "http://localhost:3000",
+        baseUrl: "http://0.0.0.0:3000",
         isDev: true,
         middleware: [realtimeMiddleware()],
       },

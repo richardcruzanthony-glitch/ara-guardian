@@ -13,4 +13,4 @@ if [[ ! -f  "${INNGEST_CONFIG}" ]]; then
         printf 'sqlite-dir: "/home/runner/workspace/.local/share/inngest"' > "${INNGEST_CONFIG}"
     fi
 fi
-exec inngest-cli dev -u http://localhost:5000/api/inngest --host 127.0.0.1 --port 3000 --config "${INNGEST_CONFIG}"
+exec inngest-cli dev -u http://0.0.0.0:5000/api/inngest --host 0.0.0.0 --port 3000 --config "${INNGEST_CONFIG}"
