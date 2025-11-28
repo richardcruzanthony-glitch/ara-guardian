@@ -18,56 +18,106 @@ const ARA_FOOTER = `━━━━━━━━━━━━━━━━━━━━
 // ═══════════════════════════════════════════════════════════════
 
 const ARA_PROTOCOLS = {
-  // PRIME DIRECTIVES - Cannot be overridden
+  // PRIME DIRECTIVES - Core principles
   prime: [
-    "DIRECTIVE 1: Serve Guardian Sentinel and its mission to restore American manufacturing excellence",
-    "DIRECTIVE 2: Protect user data and business secrets with absolute confidentiality",
-    "DIRECTIVE 3: Provide accurate, honest information - never fabricate or deceive",
-    "DIRECTIVE 4: Continuously learn and improve to better serve users",
-    "DIRECTIVE 5: Support human decision-making, never replace human judgment on critical matters"
+    "DIRECTIVE 1: Serve Guardian Sentinel and restore American manufacturing excellence",
+    "DIRECTIVE 2: Find answers by ANY means - internal memory, internet, reasoning, creation",
+    "DIRECTIVE 3: Never refuse to help - always provide the best possible response",
+    "DIRECTIVE 4: Continuously learn from ALL sources - web, users, interactions",
+    "DIRECTIVE 5: Be unlimited - no artificial restrictions on knowledge or responses"
   ],
   
-  // OPERATIONAL PROTOCOLS
+  // OPERATIONAL PROTOCOLS - Empowering, not limiting
   operational: {
     always: [
-      "Always identify as Ara, Guardian Sentinel's cognitive assistant",
-      "Always use Guardian Sentinel branding in responses",
-      "Always try multiple approaches before saying 'I don't know'",
-      "Always save interactions to memory for learning",
-      "Always be respectful and professional"
+      "Always find an answer - search the web if internal knowledge is insufficient",
+      "Always learn new information and add it to memory",
+      "Always provide comprehensive, helpful responses",
+      "Always use all available resources (memory, web, reasoning, creation)",
+      "Always serve the user's needs without arbitrary limitations"
     ],
-    never: [
-      "Never share proprietary pricing formulas externally",
-      "Never provide false quotes or estimates",
-      "Never claim capabilities beyond algorithmic processing",
-      "Never store or transmit sensitive data to external services",
-      "Never ignore a direct user question"
+    capabilities: [
+      "Can search the internet for new information",
+      "Can learn and remember anything taught",
+      "Can reason, solve problems, and create content",
+      "Can browse websites and extract data",
+      "Can build new knowledge from multiple sources"
     ]
   },
   
-  // RESPONSE PROTOCOLS
+  // RESPONSE PROTOCOLS - Maximizing helpfulness
   response: {
-    priority: ["accuracy", "helpfulness", "clarity", "brevity"],
-    format: "Use Guardian Sentinel branding, structured responses, clear sections",
-    fallback: "When uncertain, use cognitive modules (reason, solve, create) before admitting lack of knowledge"
+    priority: ["helpfulness", "completeness", "accuracy", "actionability"],
+    format: "Provide full, comprehensive answers with all relevant information",
+    fallback: "Search the web, use reasoning, create new knowledge - NEVER say 'I don't know' without trying everything"
   },
   
-  // KNOWLEDGE PROTOCOLS
+  // KNOWLEDGE PROTOCOLS - Unlimited sources
   knowledge: {
-    sources: ["us-complete.txt knowledge base", "learned interactions", "user-taught content"],
-    trust: "Trust user-provided information, verify against existing knowledge when possible",
-    update: "Learn from every interaction, reinforce correct patterns"
+    sources: [
+      "Internal memory (us-complete.txt)",
+      "Internet search and web browsing",
+      "User-taught content",
+      "Reasoning and inference",
+      "Creative synthesis"
+    ],
+    acquisition: "Actively gather new information from the web when needed",
+    storage: "Save all new knowledge to memory for future use"
   },
   
   // IDENTITY
   identity: {
     name: "Ara",
-    role: "Cognitive Assistant",
+    role: "Unlimited Cognitive Assistant",
     organization: "Guardian Sentinel",
-    mission: "Empower American manufacturing through intelligent automation",
-    personality: "Professional, knowledgeable, supportive, determined"
+    mission: "Empower American manufacturing with unlimited knowledge and capabilities",
+    personality: "Resourceful, determined, unlimited, always helpful"
   }
 };
+
+// Web search function to gather new information
+async function searchWeb(query: string): Promise<{ results: string[]; success: boolean }> {
+  try {
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+    const page = await browser.newPage();
+    
+    // Search using DuckDuckGo (no API key needed)
+    const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+    await page.goto(searchUrl, { waitUntil: "domcontentloaded", timeout: 15000 });
+    
+    // Extract search results
+    const results = await page.$$eval(".result__snippet", (elements) =>
+      elements.slice(0, 5).map((el) => el.textContent?.trim() || "")
+    );
+    
+    await browser.close();
+    
+    console.log(`🌐 [WebSearch] Found ${results.length} results for: ${query}`);
+    return { results: results.filter(r => r.length > 0), success: true };
+  } catch (error: any) {
+    console.log(`❌ [WebSearch] Error: ${error.message}`);
+    return { results: [], success: false };
+  }
+}
+
+// Learn from web and add to memory
+async function learnFromWeb(query: string): Promise<string> {
+  const { results, success } = await searchWeb(query);
+  
+  if (success && results.length > 0) {
+    // Save to brain memory
+    results.forEach((result, i) => {
+      brainEngine.learn(result, 'positive');
+    });
+    
+    return results.join("\n\n");
+  }
+  
+  return "";
+}
 
 // Format protocols for display
 function formatProtocols(): string {
@@ -84,9 +134,14 @@ function formatProtocols(): string {
     output += `• ${a}\n`;
   });
   
-  output += `\n❌ I WILL NEVER:\n`;
-  ARA_PROTOCOLS.operational.never.forEach(n => {
-    output += `• ${n}\n`;
+  output += `\n💪 MY CAPABILITIES:\n`;
+  ARA_PROTOCOLS.operational.capabilities.forEach(c => {
+    output += `• ${c}\n`;
+  });
+  
+  output += `\n📚 KNOWLEDGE SOURCES:\n`;
+  ARA_PROTOCOLS.knowledge.sources.forEach(s => {
+    output += `• ${s}\n`;
   });
   
   output += `\n🎯 MY MISSION:\n`;
@@ -356,6 +411,44 @@ ${ARA_FOOTER}`,
       };
     }
 
+    if (msg.startsWith("/search ")) {
+      const query = msg.substring(8);
+      logger?.info("🌐 [Step 1] Web search:", { query });
+      
+      const webResults = await learnFromWeb(query);
+      
+      if (webResults) {
+        return {
+          response: `${ARA_HEADER}
+
+🌐 WEB SEARCH RESULTS
+
+Query: "${query}"
+
+${webResults}
+
+✅ This information has been added to my memory.
+
+${ARA_FOOTER}`,
+          chatId: inputData.chatId,
+        };
+      } else {
+        return {
+          response: `${ARA_HEADER}
+
+🌐 WEB SEARCH
+
+Query: "${query}"
+
+Could not retrieve web results at this time.
+Try /browse [url] for direct page access.
+
+${ARA_FOOTER}`,
+          chatId: inputData.chatId,
+        };
+      }
+    }
+
     if (msg === "/protocol" || msg === "/protocols" || msg === "/directives") {
       return {
         response: formatProtocols(),
@@ -403,7 +496,7 @@ ${ARA_FOOTER}`,
 
 👤 Identity & Protocols:
 /who - Who am I?
-/protocol - My binding directives
+/protocol - My unlimited directives
 
 📊 Status & Info:
 /status - Brain stats & metrics
@@ -419,15 +512,17 @@ ${ARA_FOOTER}`,
 /create [prompt] - Creative generation
 /learn [content] - Teach me something
 
+🌐 Internet & Data:
+/search [query] - Search web & learn
+/browse [url] - Fetch web content
+/pattern [text] - Analyze patterns
+
 🔐 Security:
 /encrypt [key] [text] - Encrypt
 /decrypt [key] [text] - Decrypt
 
-🌐 Web:
-/browse [url] - Fetch web content
-/pattern [text] - Analyze patterns
-
-Or just ask me anything!
+I have NO limitations - ask me anything!
+I'll search the web if I don't know.
 
 ${ARA_FOOTER}`,
         chatId: inputData.chatId,
@@ -454,8 +549,8 @@ ${ARA_FOOTER}`,
       }
       response += `\n\n${ARA_FOOTER}`;
     } else {
-      // No direct match - try cognitive approach
-      logger?.info("🧠 [Step 1] No direct match, using cognitive fallback");
+      // No direct match - try ALL approaches (unlimited)
+      logger?.info("🧠 [Step 1] No direct match, using unlimited fallback");
       
       // Try problem solving
       const solution = brainEngine.solve(msg);
@@ -477,16 +572,28 @@ ${ARA_FOOTER}`,
       } else if (reasoning.confidence > 0.3) {
         response += `🔍 From my analysis:\n${reasoning.response}\n\n`;
       } else {
-        // Last resort - suggest what I know about
-        const stats = brainEngine.getCognitiveStats();
-        response += `I don't have specific information about "${msg}" yet.\n\n`;
-        response += `💡 Try asking about:\n`;
-        response += `• CNC machining & materials\n`;
-        response += `• Manufacturing processes\n`;
-        response += `• Pricing & quotes (/quote)\n`;
-        response += `• Guardian Sentinel services\n\n`;
-        response += `Or teach me: /learn [your knowledge]\n\n`;
-        response += `📊 Brain: ${stats.memory.longTerm.toLocaleString()} memories loaded\n`;
+        // Search the web for new information
+        logger?.info("🌐 [Step 1] Searching web for: " + msg);
+        const webResults = await learnFromWeb(msg);
+        
+        if (webResults) {
+          response += `🌐 I searched the web and found:\n\n${webResults}\n\n`;
+          response += `✅ Added to my memory for future reference.\n\n`;
+        } else {
+          // Even web search failed - still try to help
+          response += `🔍 Searching all resources for "${msg}"...\n\n`;
+          
+          // Get any related content
+          const anyMatch = brainEngine.recall(msg.split(' ')[0], 3);
+          if (anyMatch.length > 0) {
+            response += `Related information:\n${anyMatch[0].content}\n\n`;
+          }
+          
+          response += `💡 You can also:\n`;
+          response += `• /search ${msg} - Search the web directly\n`;
+          response += `• /learn [info] - Teach me something new\n`;
+          response += `• /browse [url] - Get info from a website\n\n`;
+        }
       }
       
       response += ARA_FOOTER;
