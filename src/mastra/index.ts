@@ -143,13 +143,8 @@ export const mastra = new Mastra({
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; }
     h1 { color: #a855f7; margin-bottom: 5px; }
     .subtitle { color: #888; margin-bottom: 20px; font-size: 14px; }
-    .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-    .tab { padding: 12px 24px; background: #2d3748; color: #eee; border: none; border-radius: 12px 12px 0 0; cursor: pointer; font-size: 15px; font-weight: 500; transition: all 0.2s; }
-    .tab:hover { background: #3d4758; }
-    .tab.active { background: #16213e; color: #a855f7; }
-    .container { width: 100%; max-width: 600px; background: #16213e; border-radius: 0 16px 16px 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); min-height: 500px; }
-    .panel { display: none; }
-    .panel.active { display: block; }
+    .container { width: 100%; max-width: 600px; background: #16213e; border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); min-height: 500px; }
+    .panel { display: block; }
     .controls { display: flex; gap: 10px; margin-bottom: 15px; justify-content: center; }
     .control-btn { padding: 8px 16px; background: #2d3748; color: #eee; border: none; border-radius: 20px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
     .control-btn:hover { background: #3d4758; }
@@ -159,8 +154,8 @@ export const mastra = new Mastra({
     .user { background: #a855f7; margin-left: auto; text-align: right; }
     .bot { background: #2d3748; }
     .input-area { display: flex; gap: 8px; }
-    input, textarea { flex: 1; padding: 12px 16px; border: none; border-radius: 12px; background: #0f0f23; color: #eee; font-size: 15px; outline: none; font-family: inherit; }
-    input:focus, textarea:focus { box-shadow: 0 0 0 2px #a855f7; }
+    input { flex: 1; padding: 12px 16px; border: none; border-radius: 12px; background: #0f0f23; color: #eee; font-size: 15px; outline: none; font-family: inherit; }
+    input:focus { box-shadow: 0 0 0 2px #a855f7; }
     button { padding: 12px 18px; background: #a855f7; color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: 600; transition: background 0.2s; }
     button:hover { background: #9333ea; }
     button:disabled { background: #555; cursor: not-allowed; }
@@ -170,40 +165,13 @@ export const mastra = new Mastra({
     @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     .typing { color: #888; font-style: italic; padding: 8px; }
     .status { text-align: center; color: #888; font-size: 12px; margin-top: 10px; min-height: 18px; }
-    .memory-list { background: #0f0f23; border-radius: 12px; padding: 15px; max-height: 350px; overflow-y: auto; margin-bottom: 15px; }
-    .memory-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #2d3748; border-radius: 8px; margin-bottom: 8px; font-size: 14px; }
-    .memory-item:last-child { margin-bottom: 0; }
-    .memory-text { flex: 1; }
-    .delete-btn { background: #dc2626; padding: 6px 12px; font-size: 12px; border-radius: 6px; }
-    .delete-btn:hover { background: #b91c1c; }
-    .add-area { display: flex; gap: 10px; }
-    .add-area input { flex: 1; }
-    .add-btn { background: #22c55e; }
-    .add-btn:hover { background: #16a34a; }
-    .info { background: #1e3a5f; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; color: #93c5fd; }
-    .count { color: #888; font-size: 13px; margin-bottom: 10px; }
-    .tool-section { background: #0f0f23; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
-    .tool-title { color: #a855f7; font-size: 16px; margin-bottom: 10px; }
-    .tool-row { display: flex; gap: 8px; margin-bottom: 10px; }
-    .tool-row input { flex: 1; }
-    .tool-output { background: #2d3748; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 14px; min-height: 40px; word-break: break-all; }
-    .tool-output:empty::before { content: 'Result will appear here...'; color: #666; }
-    .pattern-item { padding: 6px 0; border-bottom: 1px solid #3d4758; }
-    .pattern-item:last-child { border-bottom: none; }
-    .pattern-label { color: #a855f7; font-weight: 600; }
   </style>
 </head>
 <body>
   <h1>Ara-Brain</h1>
   <p class="subtitle">Voice-enabled memory bot</p>
   
-  <div class="tabs">
-    <button class="tab active" onclick="showTab('chat')">Chat</button>
-    <button class="tab" onclick="showTab('tools')">Tools</button>
-    <button class="tab" onclick="showTab('resources')">Resources</button>
-  </div>
-  
-  <div class="container">
+  <div class="container" style="border-radius: 16px;">
     <div id="chatPanel" class="panel active">
       <div class="controls">
         <button class="control-btn" id="muteBtn" onclick="toggleMute()">
@@ -218,133 +186,12 @@ export const mastra = new Mastra({
       </div>
       <div class="status" id="status"></div>
     </div>
-    
-    <div id="toolsPanel" class="panel">
-      <div class="tool-section">
-        <h3 class="tool-title">Encryption</h3>
-        <div class="info">Encode any text with a numeric key - works on all characters</div>
-        <div class="tool-row">
-          <input type="text" id="encryptInput" placeholder="Message to encrypt...">
-          <input type="number" id="encryptKey" placeholder="Key" value="7" style="width:80px;">
-          <button onclick="encryptText()">Encrypt</button>
-        </div>
-        <div class="tool-output" id="encryptOutput"></div>
-      </div>
-      
-      <div class="tool-section">
-        <h3 class="tool-title">Decryption</h3>
-        <div class="info">Decode an encrypted message with the same key</div>
-        <div class="tool-row">
-          <input type="text" id="decryptInput" placeholder="Encrypted message...">
-          <input type="number" id="decryptKey" placeholder="Key" value="7" style="width:80px;">
-          <button onclick="decryptText()">Decrypt</button>
-        </div>
-        <div class="tool-output" id="decryptOutput"></div>
-      </div>
-      
-      <div class="tool-section">
-        <h3 class="tool-title">Pattern Recognition</h3>
-        <div class="info">Analyze text to detect patterns, emails, numbers, repeated words</div>
-        <div class="tool-row">
-          <input type="text" id="patternInput" placeholder="Text to analyze...">
-          <button onclick="analyzePattern()">Analyze</button>
-        </div>
-        <div class="tool-output" id="patternOutput"></div>
-      </div>
-      
-      <div class="tool-section">
-        <h3 class="tool-title">Script Runner</h3>
-        <div class="info">Write and execute JavaScript code</div>
-        <textarea id="scriptInput" rows="5" placeholder="// Write your JavaScript here...
-console.log('Hello!');
-return 2 + 2;"></textarea>
-        <div class="tool-row" style="margin-top:10px;">
-          <button onclick="runScript()">Run Script</button>
-          <button onclick="document.getElementById('scriptInput').value=''" style="background:#555;">Clear</button>
-        </div>
-        <div class="tool-output" id="scriptOutput"></div>
-      </div>
-      
-      <div class="tool-section">
-        <h3 class="tool-title">Browser</h3>
-        <div class="info">Open URLs, take screenshots, extract page content</div>
-        <div class="tool-row">
-          <input type="text" id="browserUrl" placeholder="https://example.com">
-          <select id="browserAction" style="width:120px;padding:10px;background:#0f0f23;color:#eee;border:none;border-radius:8px;">
-            <option value="screenshot">Screenshot</option>
-            <option value="content">Get Text</option>
-            <option value="title">Get Title</option>
-            <option value="links">Get Links</option>
-          </select>
-          <button onclick="browserAction()">Go</button>
-        </div>
-        <div class="tool-output" id="browserOutput"></div>
-        <img id="screenshotImg" style="display:none;max-width:100%;margin-top:10px;border-radius:8px;">
-      </div>
-    </div>
-    
-    <div id="resourcesPanel" class="panel">
-      <div class="info">These are the phrases Ara-Brain knows. When you send a message containing any word from a phrase, it responds with that phrase.</div>
-      <div class="count" id="memoryCount"></div>
-      <div class="memory-list" id="memoryList"></div>
-      <div class="add-area">
-        <input type="text" id="newPhrase" placeholder="Add a new phrase..." onkeypress="if(event.key==='Enter')addPhrase()">
-        <button class="add-btn" onclick="addPhrase()">Add</button>
-      </div>
-    </div>
   </div>
   
   <script>
-    let memoryLines = [];
     let isMuted = false;
     let isListening = false;
     let recognition = null;
-    
-    async function loadMemory() {
-      const res = await fetch('/memory');
-      const data = await res.json();
-      memoryLines = data.phrases;
-      renderMemory();
-    }
-    
-    function renderMemory() {
-      const list = document.getElementById('memoryList');
-      const count = document.getElementById('memoryCount');
-      count.textContent = memoryLines.length + ' phrases in memory';
-      list.innerHTML = memoryLines.map((phrase, i) => 
-        '<div class="memory-item"><span class="memory-text">' + phrase + '</span><button class="delete-btn" onclick="deletePhrase(' + i + ')">Delete</button></div>'
-      ).join('');
-    }
-    
-    async function addPhrase() {
-      const input = document.getElementById('newPhrase');
-      const phrase = input.value.trim();
-      if (!phrase) return;
-      await fetch('/memory', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'add', phrase })
-      });
-      input.value = '';
-      loadMemory();
-    }
-    
-    async function deletePhrase(index) {
-      await fetch('/memory', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete', index })
-      });
-      loadMemory();
-    }
-    
-    function showTab(tab) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-      document.querySelector('.tab[onclick*="' + tab + '"]').classList.add('active');
-      document.getElementById(tab + 'Panel').classList.add('active');
-      if (tab === 'resources') loadMemory();
-    }
     
     const messages = document.getElementById('messages');
     const input = document.getElementById('input');
@@ -404,67 +251,7 @@ return 2 + 2;"></textarea>
       input.focus();
     }
     
-    async function encryptText() {
-      const text = document.getElementById('encryptInput').value;
-      const key = parseInt(document.getElementById('encryptKey').value) || 3;
-      if (!text) return;
-      const res = await fetch('/tools/encrypt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, key }) });
-      const data = await res.json();
-      document.getElementById('encryptOutput').textContent = data.result;
-    }
-    
-    async function decryptText() {
-      const text = document.getElementById('decryptInput').value;
-      const key = parseInt(document.getElementById('decryptKey').value) || 3;
-      if (!text) return;
-      const res = await fetch('/tools/decrypt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, key }) });
-      const data = await res.json();
-      document.getElementById('decryptOutput').textContent = data.result;
-    }
-    
-    async function analyzePattern() {
-      const text = document.getElementById('patternInput').value;
-      if (!text) return;
-      const res = await fetch('/tools/pattern', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
-      const data = await res.json();
-      const output = document.getElementById('patternOutput');
-      output.innerHTML = data.patterns.map(p => '<div class="pattern-item"><span class="pattern-label">' + p.type + ':</span> ' + p.value + '</div>').join('');
-    }
-    
-    async function runScript() {
-      const code = document.getElementById('scriptInput').value;
-      if (!code.trim()) return;
-      document.getElementById('scriptOutput').textContent = 'Running...';
-      try {
-        const res = await fetch('/tools/script', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
-        const data = await res.json();
-        document.getElementById('scriptOutput').innerHTML = '<pre style="margin:0;white-space:pre-wrap;">' + (data.logs ? data.logs.join('\\n') + '\\n' : '') + (data.result !== undefined ? 'Result: ' + JSON.stringify(data.result) : '') + (data.error ? 'Error: ' + data.error : '') + '</pre>';
-      } catch (e) { document.getElementById('scriptOutput').textContent = 'Error: ' + e.message; }
-    }
-    
-    async function browserAction() {
-      const url = document.getElementById('browserUrl').value;
-      const action = document.getElementById('browserAction').value;
-      if (!url) return;
-      document.getElementById('browserOutput').textContent = 'Loading...';
-      document.getElementById('screenshotImg').style.display = 'none';
-      try {
-        const res = await fetch('/tools/browser', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url, action }) });
-        const data = await res.json();
-        if (data.screenshot) {
-          document.getElementById('screenshotImg').src = 'data:image/png;base64,' + data.screenshot;
-          document.getElementById('screenshotImg').style.display = 'block';
-          document.getElementById('browserOutput').textContent = 'Screenshot captured';
-        } else if (data.links) {
-          document.getElementById('browserOutput').innerHTML = data.links.slice(0,20).map(l => '<div class="pattern-item">' + l + '</div>').join('');
-        } else {
-          document.getElementById('browserOutput').innerHTML = '<pre style="margin:0;white-space:pre-wrap;">' + (data.result || data.error || 'No result') + '</pre>';
-        }
-      } catch (e) { document.getElementById('browserOutput').textContent = 'Error: ' + e.message; }
-    }
-    
     input.focus();
-    loadMemory();
   </script>
 </body>
 </html>`;
