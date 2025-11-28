@@ -33,27 +33,96 @@ let memoryPhrases: string[] = [
   "hope your day is as amazing as you are"
 ];
 
-// Conversation history tracking - per session
+// Conversation history tracking - per session with style adaptation
 interface ConversationMessage {
   role: 'user' | 'bot';
   content: string;
   timestamp: number;
 }
 
+interface UserStyle {
+  formality: 'casual' | 'neutral' | 'formal';
+  verbosity: 'brief' | 'medium' | 'detailed';
+  usesEmoji: boolean;
+  usesSlang: boolean;
+  avgWordCount: number;
+  topics: string[];
+}
+
 interface ConversationSession {
   messages: ConversationMessage[];
   createdAt: number;
   lastActivity: number;
+  userStyle: UserStyle;
+  messageCount: number;
 }
 
 const conversationSessions: Map<string, ConversationSession> = new Map();
+
+function analyzeUserStyle(messages: ConversationMessage[]): UserStyle {
+  const userMessages = messages.filter(m => m.role === 'user');
+  if (userMessages.length === 0) {
+    return { formality: 'neutral', verbosity: 'medium', usesEmoji: false, usesSlang: false, avgWordCount: 10, topics: [] };
+  }
+  
+  const allText = userMessages.map(m => m.content).join(' ');
+  const words = allText.split(/\s+/);
+  const avgWords = words.length / userMessages.length;
+  
+  const commonEmojis = ['😀', '😃', '😄', '😁', '😊', '🙂', '😎', '👍', '👋', '❤️', '🔥', '✨', '🎉', '💯', '🙏', '😂', '🤣', '😍', '🥰', '😢', '😭', '🤔', '👀', '💪', '🎯'];
+  const usesEmoji = commonEmojis.some(e => allText.includes(e));
+  
+  const slangWords = ['lol', 'omg', 'btw', 'idk', 'tbh', 'ngl', 'bruh', 'yo', 'sup', 'gonna', 'wanna', 'gotta', 'kinda', 'sorta'];
+  const usesSlang = slangWords.some(s => allText.toLowerCase().includes(s));
+  
+  const formalWords = ['please', 'kindly', 'would you', 'could you', 'thank you', 'appreciate', 'regards'];
+  const formalCount = formalWords.filter(w => allText.toLowerCase().includes(w)).length;
+  
+  let formality: 'casual' | 'neutral' | 'formal' = 'neutral';
+  if (usesSlang || usesEmoji) formality = 'casual';
+  else if (formalCount >= 2) formality = 'formal';
+  
+  let verbosity: 'brief' | 'medium' | 'detailed' = 'medium';
+  if (avgWords < 8) verbosity = 'brief';
+  else if (avgWords > 20) verbosity = 'detailed';
+  
+  const topicKeywords = ['code', 'help', 'question', 'encrypt', 'pattern', 'remember', 'history'];
+  const topics = topicKeywords.filter(t => allText.toLowerCase().includes(t));
+  
+  return { formality, verbosity, usesEmoji, usesSlang, avgWordCount: Math.round(avgWords), topics };
+}
+
+function adaptResponse(response: string, style: UserStyle): string {
+  let adapted = response;
+  
+  if (style.formality === 'casual') {
+    adapted = adapted.replace(/Hello/g, 'Hey').replace(/Certainly/g, 'Sure');
+    if (style.usesEmoji && !adapted.includes('😊')) {
+      const emojis = ['👍', '😊', '✨', '🙌'];
+      adapted = adapted + ' ' + emojis[Math.floor(Math.random() * emojis.length)];
+    }
+  } else if (style.formality === 'formal') {
+    adapted = adapted.replace(/hey/gi, 'Hello').replace(/yeah/gi, 'Yes');
+  }
+  
+  if (style.verbosity === 'brief' && adapted.length > 100) {
+    const sentences = adapted.split(/[.!?]+/).filter(s => s.trim());
+    if (sentences.length > 2) {
+      adapted = sentences.slice(0, 2).join('. ') + '.';
+    }
+  }
+  
+  return adapted;
+}
 
 export function getOrCreateSession(sessionId: string): ConversationSession {
   if (!conversationSessions.has(sessionId)) {
     conversationSessions.set(sessionId, {
       messages: [],
       createdAt: Date.now(),
-      lastActivity: Date.now()
+      lastActivity: Date.now(),
+      userStyle: { formality: 'neutral', verbosity: 'medium', usesEmoji: false, usesSlang: false, avgWordCount: 10, topics: [] },
+      messageCount: 0
     });
   }
   const session = conversationSessions.get(sessionId)!;
@@ -64,13 +133,30 @@ export function getOrCreateSession(sessionId: string): ConversationSession {
 export function addToHistory(sessionId: string, role: 'user' | 'bot', content: string) {
   const session = getOrCreateSession(sessionId);
   session.messages.push({ role, content, timestamp: Date.now() });
+  session.messageCount++;
   if (session.messages.length > 100) {
     session.messages = session.messages.slice(-100);
+  }
+  if (role === 'user' && session.messageCount % 3 === 0) {
+    session.userStyle = analyzeUserStyle(session.messages);
   }
 }
 
 export function getHistory(sessionId: string): ConversationMessage[] {
   return getOrCreateSession(sessionId).messages;
+}
+
+export function getUserStyle(sessionId: string): UserStyle {
+  return getOrCreateSession(sessionId).userStyle;
+}
+
+export function getSessionStats(sessionId: string): { messageCount: number; duration: number; style: UserStyle } {
+  const session = getOrCreateSession(sessionId);
+  return {
+    messageCount: session.messageCount,
+    duration: Date.now() - session.createdAt,
+    style: session.userStyle
+  };
 }
 
 export function getRecentContext(sessionId: string, limit: number = 5): string {
@@ -361,11 +447,14 @@ export const mastra = new Mastra({
               }
             }
             
+            const userStyle = getUserStyle(sessionId);
+            response = adaptResponse(response, userStyle);
+            
             addToHistory(sessionId, 'bot', response);
             
-            const historyCount = getHistory(sessionId).length;
-            logger?.info("✅ [Chat] Response:", { response, foundMatch, historyCount });
-            return c.json({ response, foundMatch, historyCount });
+            const stats = getSessionStats(sessionId);
+            logger?.info("✅ [Chat] Response:", { response, foundMatch, stats });
+            return c.json({ response, foundMatch, historyCount: stats.messageCount, style: stats.style });
           } catch (error) {
             logger?.error("❌ [Chat] Error:", { error });
             return c.json({ response: "Error processing message", foundMatch: false }, 500);
@@ -379,6 +468,21 @@ export const mastra = new Mastra({
           const sessionId = c.req.query('sessionId') || 'web-default';
           const history = getHistory(sessionId);
           return c.json({ history, count: history.length });
+        },
+      },
+      {
+        path: "/chat/stats",
+        method: "GET",
+        handler: async (c) => {
+          const sessionId = c.req.query('sessionId') || 'web-default';
+          const stats = getSessionStats(sessionId);
+          return c.json({ 
+            sessionId,
+            messageCount: stats.messageCount,
+            durationMs: stats.duration,
+            durationMinutes: Math.round(stats.duration / 60000),
+            style: stats.style
+          });
         },
       },
       {

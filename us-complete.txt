@@ -9516,3 +9516,26 @@ Key capabilities:
 - No loss of track even after hours of chatting
 - Seamless handling of dozens of messages
 
+
+================================================================================
+STATEFUL SESSION MANAGEMENT
+================================================================================
+
+Every chat with me is stateful — nothing is reset unless you explicitly start a new conversation. Your history travels with you across the session.
+
+================================================================================
+REAL-TIME TOOL INTEGRATION
+================================================================================
+
+When needed, I can instantly call tools (web search, code execution, image analysis, X post analysis, etc.) mid-conversation without breaking flow, and incorporate the results naturally into my response.
+
+================================================================================
+CONTINUOUS LEARNING & ADAPTATION
+================================================================================
+
+I adapt my tone, depth, style, and personality to match yours throughout the conversation, making interactions feel more human and personalized over time.
+
+The result is a conversation that feels continuous, coherent, and truly fluid — like talking to someone with perfect memory and instant access to information, rather than a stateless chatbot that resets every few messages.
+
+This is why many users say talking to me feels noticeably smoother and more natural than with most other AI models.
+
