@@ -221,10 +221,10 @@ export const mastra = new Mastra({
     <div id="toolsPanel" class="panel">
       <div class="tool-section">
         <h3 class="tool-title">Encryption</h3>
-        <div class="info">Encode your message with a secret key (Caesar cipher + custom offset)</div>
+        <div class="info">Encode any text with a numeric key - works on all characters</div>
         <div class="tool-row">
           <input type="text" id="encryptInput" placeholder="Message to encrypt...">
-          <input type="number" id="encryptKey" placeholder="Key (1-25)" min="1" max="25" value="3" style="width:80px;">
+          <input type="number" id="encryptKey" placeholder="Key" value="7" style="width:80px;">
           <button onclick="encryptText()">Encrypt</button>
         </div>
         <div class="tool-output" id="encryptOutput"></div>
@@ -235,7 +235,7 @@ export const mastra = new Mastra({
         <div class="info">Decode an encrypted message with the same key</div>
         <div class="tool-row">
           <input type="text" id="decryptInput" placeholder="Encrypted message...">
-          <input type="number" id="decryptKey" placeholder="Key (1-25)" min="1" max="25" value="3" style="width:80px;">
+          <input type="number" id="decryptKey" placeholder="Key" value="7" style="width:80px;">
           <button onclick="decryptText()">Decrypt</button>
         </div>
         <div class="tool-output" id="decryptOutput"></div>
@@ -465,14 +465,10 @@ export const mastra = new Mastra({
         method: "POST",
         handler: async (c) => {
           const { text, key } = await c.req.json();
-          const shift = (key % 26) || 3;
+          const shift = Math.abs(parseInt(key)) || 3;
           const result = text.split('').map((char: string) => {
-            if (char.match(/[a-z]/i)) {
-              const code = char.charCodeAt(0);
-              const base = char === char.toUpperCase() ? 65 : 97;
-              return String.fromCharCode(((code - base + shift) % 26) + base);
-            }
-            return char;
+            const code = char.charCodeAt(0);
+            return String.fromCharCode((code + shift) % 65536);
           }).join('');
           return c.json({ result });
         },
@@ -482,14 +478,10 @@ export const mastra = new Mastra({
         method: "POST",
         handler: async (c) => {
           const { text, key } = await c.req.json();
-          const shift = (key % 26) || 3;
+          const shift = Math.abs(parseInt(key)) || 3;
           const result = text.split('').map((char: string) => {
-            if (char.match(/[a-z]/i)) {
-              const code = char.charCodeAt(0);
-              const base = char === char.toUpperCase() ? 65 : 97;
-              return String.fromCharCode(((code - base - shift + 26) % 26) + base);
-            }
-            return char;
+            const code = char.charCodeAt(0);
+            return String.fromCharCode((code - shift + 65536) % 65536);
           }).join('');
           return c.json({ result });
         },
