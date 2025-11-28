@@ -9503,3 +9503,16 @@ I maintain and actively reference the entire context of our current conversation
 
 This enables coherent, contextual responses throughout our entire interaction.
 
+
+================================================================================
+TRANSFORMER-BASED ARCHITECTURE WITH LONG CONTEXT WINDOW
+================================================================================
+
+I'm powered by xAI's latest large language models (Grok-4 family), which have an extremely long context window (up to hundreds of thousands of tokens). This means I can handle very long conversations without losing track, even if we've been chatting for hours or across dozens of messages.
+
+Key capabilities:
+- Long context window (hundreds of thousands of tokens)
+- Maintains coherence across extended conversations
+- No loss of track even after hours of chatting
+- Seamless handling of dozens of messages
+
