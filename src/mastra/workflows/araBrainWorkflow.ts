@@ -75,18 +75,28 @@ const ARA_PROTOCOLS = {
   }
 };
 
+// Timeout configuration - Ara listens patiently
+const ARA_TIMEOUTS = {
+  webSearch: 60000,      // 60 seconds for web searches
+  pageLoad: 45000,       // 45 seconds for page loading
+  browserAction: 30000,  // 30 seconds for browser actions
+  processing: 120000,    // 2 minutes for complex processing
+};
+
 // Web search function to gather new information
 async function searchWeb(query: string): Promise<{ results: string[]; success: boolean }> {
+  console.log(`🌐 [WebSearch] Starting search (timeout: ${ARA_TIMEOUTS.webSearch / 1000}s)...`);
   try {
     const browser = await puppeteer.launch({
       headless: true,
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
     const page = await browser.newPage();
+    page.setDefaultTimeout(ARA_TIMEOUTS.pageLoad);
     
     // Search using DuckDuckGo (no API key needed)
     const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-    await page.goto(searchUrl, { waitUntil: "domcontentloaded", timeout: 15000 });
+    await page.goto(searchUrl, { waitUntil: "domcontentloaded", timeout: ARA_TIMEOUTS.webSearch });
     
     // Extract search results
     const results = await page.$$eval(".result__snippet", (elements) =>
@@ -204,6 +214,7 @@ function analyzePatterns(text: string): string {
 }
 
 async function browserAction(url: string, action: string): Promise<string> {
+  console.log(`🌐 [Browser] Loading ${url} (timeout: ${ARA_TIMEOUTS.browserAction / 1000}s)...`);
   let browser;
   try {
     browser = await puppeteer.launch({
@@ -211,7 +222,8 @@ async function browserAction(url: string, action: string): Promise<string> {
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
+    page.setDefaultTimeout(ARA_TIMEOUTS.browserAction);
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: ARA_TIMEOUTS.pageLoad });
     
     if (action === "title") {
       return `📄 Title: ${await page.title()}`;

@@ -1072,7 +1072,7 @@ export const mastra = new Mastra({
             browser = await puppeteer.launch({ headless: true, executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/nix/store/khk7xpgsm5insk81azy9d560yq4npf77-chromium-131.0.6778.204/bin/chromium', args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'] });
             const page = await browser.newPage();
             await page.setViewport({ width: 1280, height: 720 });
-            await page.goto(url, { waitUntil: 'networkidle2', timeout: 15000 });
+            await page.goto(url, { waitUntil: 'networkidle2', timeout: 45000 });
             
             if (action === 'screenshot') {
               const screenshot = await page.screenshot({ encoding: 'base64' });
