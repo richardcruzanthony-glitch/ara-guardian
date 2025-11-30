@@ -1,27 +1,20 @@
 // src/mastra/index.ts
-/**
- * Mastra Entry Point
- *
- * Registers all agents, workflows, triggers, and global tools.
- */
-
-// --- Mastra core ---
 import { MastraApp, Mastra } from "mastra";
 
-// --- Agents ---
+// Agents
 import { exampleAgent } from "./agents/exampleAgent";
 
-// --- Workflows ---
-import { araBrainWorkflow } from "./workflows/araBrainWorkflow";
-import { exampleWorkflow } from "./workflows/exampleWorkflow";
+// Workflows (outside mastra/ — in src/workflows/)
+import { araBrainWorkflow } from "../workflows/araBrainWorkflow";
+import { exampleWorkflow } from "../workflows/exampleWorkflow";
 
-// --- Triggers ---
-import { cronTriggers } from "./triggers/cronTriggers";
-import { exampleConnectorTrigger } from "./triggers/exampleConnectorTrigger";
-import { slackTriggers } from "./triggers/slackTriggers";
-import { telegramTriggers } from "./triggers/telegramTriggers";
+// Triggers (root-level triggers/ directory)
+import { cronTriggers } from "../../triggers/cronTriggers";
+import { exampleConnectorTrigger } from "../../triggers/exampleConnectorTrigger";
+import { slackTriggers } from "../../triggers/slackTriggers";
+import { telegramTriggers } from "../../triggers/telegramTriggers";
 
-// --- Tools ---
+// Tools (inside mastra/tools/)
 import { exampleTool } from "./tools/exampleTool";
 import { autoPostTool } from "./tools/autoPostTool";
 import { brainEngine } from "./tools/brainEngine";
@@ -30,24 +23,15 @@ import { guardianPricing } from "./tools/guardianPricing";
 import { guardianQuoteTool } from "./tools/guardianQuoteTool";
 import { textMatchTool } from "./tools/textMatchTool";
 
-// --- Storage ---
+// Storage (inside mastra/storage/index.ts)
 import { sharedPostgresStorage } from "./storage";
 
-// --- Mastra App ---
+// Mastra App + setup
 export const app = new MastraApp({
-  workflows: [
-    araBrainWorkflow,
-    exampleWorkflow,
-  ],
-  triggers: [
-    cronTriggers,
-    exampleConnectorTrigger,
-    slackTriggers,
-    telegramTriggers,
-  ],
+  workflows: [araBrainWorkflow, exampleWorkflow],
+  triggers: [cronTriggers, exampleConnectorTrigger, slackTriggers, telegramTriggers],
 });
 
-// --- Mastra Core ---
 export const mastra = new Mastra({
   agents: [exampleAgent],
   workflows: [araBrainWorkflow, exampleWorkflow],
@@ -67,10 +51,8 @@ export const mastra = new Mastra({
       lastMessages: 10,
     },
   },
-  // debug: true, // Optional
 });
 
-// --- Auto-start if run directly ---
 if (require.main === module) {
   app.start().catch((err) => {
     console.error("Mastra app failed to start:", err);
