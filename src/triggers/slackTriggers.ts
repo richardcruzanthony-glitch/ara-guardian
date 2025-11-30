@@ -1,34 +1,11 @@
 /**
- * Slack Trigger - Webhook-based Workflow Triggering
+ * Slack Trigger - Webhook-based Workflow Triggering (Render-ready)
  *
  * This module provides Slack event handling for Mastra workflows.
  * When Slack events occur (like new messages), this trigger starts your workflow.
- *
- * PATTERN:
- * 1. Import registerSlackTrigger and your workflow
- * 2. Call registerSlackTrigger with a triggerType and handler
- * 3. Spread the result into the apiRoutes array in src/mastra/index.ts
- *
- * USAGE in src/mastra/index.ts:
- *
- * ```typescript
- * import { registerSlackTrigger } from "../triggers/slackTriggers";
- * import { slackBotWorkflow } from "./workflows/slackBotWorkflow";
- *
- * // In the apiRoutes array:
- * ...registerSlackTrigger({
- *   triggerType: "slack/message.channels",
- *   handler: async (mastra, triggerInfo) => {
- *     const threadId = `slack-${triggerInfo.params.channel}`;
- *     const run = await slackBotWorkflow.createRunAsync();
- *     return await run.start({ inputData: { threadId } });
- *   }
- * })
- * ```
  */
 
-import { format, promisify } from "node:util";
-import { execFile } from "node:child_process";
+import { format } from "node:util";
 import { Mastra, type WorkflowResult, type Step } from "@mastra/core";
 import { IMastraLogger } from "@mastra/core/logger";
 import {
@@ -44,12 +21,10 @@ import {
 import type { Context, Handler, MiddlewareHandler } from "hono";
 import { streamSSE } from "hono/streaming";
 import type { z } from "zod";
-
 import { registerApiRoute } from "../mastra/inngest";
 
 export type Methods = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "ALL";
 
-// TODO: Remove when Mastra exports this type.
 export type ApiRoute =
   | {
       path: string;
@@ -74,260 +49,84 @@ export type TriggerInfoSlackOnNewMessage = {
 };
 
 type DiagnosisStep =
-  | {
-      status: "pending";
-      name: string;
-      extra?: Record<string, any>;
-    }
-  | {
-      status: "success";
-      name: string;
-      extra: Record<string, any>;
-    }
-  | {
-      status: "failed";
-      name: string;
-      error: string;
-      extra: Record<string, any>;
-    };
+  | { status: "pending"; name: string; extra?: Record<string, any> }
+  | { status: "success"; name: string; extra: Record<string, any> }
+  | { status: "failed"; name: string; error: string; extra: Record<string, any> };
 
+// -------------------- Render-friendly Slack Client --------------------
 export async function getClient() {
-  let connectionSettings: any;
-  async function getAccessToken() {
-    if (
-      connectionSettings &&
-      connectionSettings.settings.expires_at &&
-      new Date(connectionSettings.settings.expires_at).getTime() > Date.now()
-    ) {
-      return {
-        token: connectionSettings.settings.access_token,
-        user: connectionSettings.settings.oauth?.credentials?.raw?.authed_user
-          ?.id,
-      };
-    }
+  const token = process.env.SLACK_BOT_TOKEN;
+  if (!token) throw new Error("SLACK_BOT_TOKEN not set in environment");
 
-    const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-    const { stdout } = await promisify(execFile)(
-      "replit",
-      ["identity", "create", "--audience", `https://${hostname}`],
-      { encoding: "utf8" },
-    );
-
-    const replitToken = stdout.trim();
-    if (!replitToken) {
-      throw new Error("Replit Identity Token not found for repl/depl");
-    }
-
-    const res = await fetch(
-      "https://" +
-        hostname +
-        "/api/v2/connection?include_secrets=true&connector_names=slack-agent",
-      {
-        headers: {
-          Accept: "application/json",
-          "Replit-Authentication": `Bearer ${replitToken}`,
-        },
-      },
-    );
-    const resJson = await res.json();
-    connectionSettings = resJson?.items?.[0];
-    if (!connectionSettings || !connectionSettings.settings.access_token) {
-      throw new Error(
-        `Slack not connected: HTTP ${res.status} ${res.statusText}: ${JSON.stringify(resJson)}`,
-      );
-    }
-    return {
-      token: connectionSettings.settings.access_token,
-      user: connectionSettings.settings.oauth?.credentials?.raw?.authed_user
-        ?.id,
-    };
-  }
-
-  const { token, user } = await getAccessToken();
   const slack = new WebClient(token);
-
-  const response = await slack.auth.test();
-
-  return { slack, auth: response, user };
+  const auth = await slack.auth.test();
+  return { slack, auth, user: auth.user_id };
 }
 
-// Keep up to 200 recent events, to prevent duplicates
-const recentEvents: string[] = [];
-
-function isWebAPICallError(err: unknown): err is WebAPICallError {
-  return (
-    err !== null && typeof err === "object" && "code" in err && "data" in err
-  );
-}
-
-function checkDuplicateEvent(eventName: string) {
-  if (recentEvents.includes(eventName)) {
-    return true;
-  }
-  recentEvents.push(eventName);
-  if (recentEvents.length > 200) {
-    recentEvents.shift();
+// -------------------- Duplicate Event Handling --------------------
+const recentEvents = new Set<string>();
+function checkDuplicateEvent(eventId: string) {
+  if (recentEvents.has(eventId)) return true;
+  recentEvents.add(eventId);
+  if (recentEvents.size > 200) {
+    recentEvents.delete([...recentEvents][0]);
   }
   return false;
 }
 
-function createReactToMessage<
-  TState extends z.ZodObject<any>,
-  TInput extends z.ZodType<any>,
-  TOutput extends z.ZodType<any>,
-  TSteps extends Step<string, any, any>[],
->({ slack, logger }: { slack: WebClient; logger: IMastraLogger }) {
-  const addReaction = async (
-    channel: string,
-    timestamp: string,
-    emoji: string,
-  ) => {
-    logger.info(`[Slack] Adding reaction to message`, {
-      emoji,
-      timestamp,
-      channel,
-    });
-    try {
-      await slack.reactions.add({ channel, timestamp, name: emoji });
-    } catch (error) {
-      logger.error(`[Slack] Error adding reaction to message`, {
-        emoji,
-        timestamp,
-        channel,
-        error: format(error),
-      });
-    }
+// -------------------- Slack Reactions --------------------
+function isWebAPICallError(err: unknown): err is WebAPICallError {
+  return typeof err === "object" && err !== null && "code" in err && "data" in err;
+}
+
+function createReactToMessage<TState extends z.ZodObject<any>, TInput extends z.ZodType<any>, TOutput extends z.ZodType<any>, TSteps extends Step<string, any, any>[]>(
+  { slack, logger }: { slack: WebClient; logger: IMastraLogger }
+) {
+  const addReaction = async (channel: string, timestamp: string, emoji: string) => {
+    logger.info(`[Slack] Adding reaction ${emoji} to message`, { channel, timestamp });
+    try { await slack.reactions.add({ channel, timestamp, name: emoji }); }
+    catch (error) { logger.error(`[Slack] Error adding reaction`, { emoji, timestamp, channel, error: format(error) }); }
   };
 
   const removeAllReactions = async (channel: string, timestamp: string) => {
-    logger.info(`[Slack] Removing all reactions from message`, {
-      timestamp,
-      channel,
-    });
-    const emojis = [
-      "hourglass",
-      "hourglass_flowing_sand",
-      "white_check_mark",
-      "x",
-      "alarm_clock",
-    ];
-
+    const emojis = ["hourglass", "hourglass_flowing_sand", "white_check_mark", "x", "alarm_clock"];
     for (const emoji of emojis) {
-      try {
-        await slack.reactions.remove({ channel, timestamp, name: emoji });
-      } catch (error) {
-        if (
-          isWebAPICallError(error) &&
-          (error.code !== ErrorCode.PlatformError ||
-            error.data?.error !== "no_reaction")
-        ) {
-          logger.error("[Slack] Error removing reaction", {
-            emoji,
-            timestamp,
-            channel,
-            error: format(error),
-          });
+      try { await slack.reactions.remove({ channel, timestamp, name: emoji }); }
+      catch (error) {
+        if (isWebAPICallError(error) && (error.code !== ErrorCode.PlatformError || error.data?.error !== "no_reaction")) {
+          logger.error("[Slack] Error removing reaction", { emoji, timestamp, channel, error: format(error) });
         }
       }
     }
   };
 
-  return async function reactToMessage(
-    channel: string,
-    timestamp: string,
-    result: WorkflowResult<TState, TInput, TOutput, TSteps> | null,
-  ) {
-    // Remove all of our reactions.
+  return async function reactToMessage(channel: string, timestamp: string, result: WorkflowResult<TState, TInput, TOutput, TSteps> | null) {
     await removeAllReactions(channel, timestamp);
-    if (result?.status === "success") {
-      await addReaction(channel, timestamp, "white_check_mark");
-    } else if (result?.status === "failed") {
-      await addReaction(channel, timestamp, "x");
-    } else if (result !== null) {
-      await addReaction(channel, timestamp, "alarm_clock");
-    }
+    if (result?.status === "success") await addReaction(channel, timestamp, "white_check_mark");
+    else if (result?.status === "failed") await addReaction(channel, timestamp, "x");
+    else if (result !== null) await addReaction(channel, timestamp, "alarm_clock");
   };
 }
 
-export function registerSlackTrigger<
-  Env extends { Variables: { mastra: Mastra } },
-  TState extends z.ZodObject<any>,
-  TInput extends z.ZodType<any>,
-  TOutput extends z.ZodType<any>,
-  TSteps extends Step<string, any, any>[],
->({
-  triggerType,
-  handler,
-}: {
-  triggerType: string;
-  handler: (
-    mastra: Mastra,
-    triggerInfo: TriggerInfoSlackOnNewMessage,
-  ) => Promise<WorkflowResult<TState, TInput, TOutput, TSteps> | null>;
-}): Array<ApiRoute> {
+// -------------------- Slack Trigger Registration --------------------
+export function registerSlackTrigger<Env extends { Variables: { mastra: Mastra } }, TState extends z.ZodObject<any>, TInput extends z.ZodType<any>, TOutput extends z.ZodType<any>, TSteps extends Step<string, any, any>[]>(
+  { triggerType, handler }: { triggerType: string; handler: (mastra: Mastra, triggerInfo: TriggerInfoSlackOnNewMessage) => Promise<WorkflowResult<TState, TInput, TOutput, TSteps> | null> }
+): Array<ApiRoute> {
   return [
     registerApiRoute("/webhooks/slack/action", {
       method: "POST",
       handler: async (c) => {
         const mastra = c.get("mastra");
         const logger = mastra.getLogger();
+
         try {
           const payload = await c.req.json();
           const { slack, auth } = await getClient();
           const reactToMessage = createReactToMessage({ slack, logger });
 
-          // Handle challenge
-          if (payload && payload["challenge"]) {
-            return c.text(payload["challenge"], 200);
-          }
-
-          logger?.info("📝 [Slack] payload", { payload });
-
-          // Augment event with channel info
-          if (payload && payload.event && payload.event.channel) {
-            try {
-              const result = await slack.conversations.info({
-                channel: payload.event.channel,
-              });
-              logger?.info("📝 [Slack] result", { result });
-              payload.channel = result.channel;
-            } catch (error) {
-              logger?.error("Error fetching channel info", {
-                error: format(error),
-              });
-              // Continue processing even if channel info fetch fails
-            }
-          }
-
-          // Check subtype
-          if (
-            payload.event?.subtype === "message_changed" ||
-            payload.event?.subtype === "message_deleted"
-          ) {
-            return c.text("OK", 200);
-          }
-
-          if (
-            (payload.event?.channel_type === "im" &&
-              payload.event?.text === "test:ping") ||
-            payload.event?.text === `<@${auth.user_id}> test:ping`
-          ) {
-            // This is a test message to the bot saying just "test:ping", or a mention that contains "test:ping".
-            // We'll reply in the same thread.
-            await slack.chat.postMessage({
-              channel: payload.event.channel,
-              text: "pong",
-              thread_ts: payload.event.ts,
-            });
-            logger?.info("📝 [Slack] pong");
-            return c.text("OK", 200);
-          }
-
-          if (payload.event?.bot_id) {
-            return c.text("OK", 200);
-          }
-
-          if (checkDuplicateEvent(payload.event_id)) {
+          if (payload.challenge) return c.text(payload.challenge, 200);
+          if (checkDuplicateEvent(payload.event_id)) return c.text("OK", 200);
+          if (payload.event?.bot_id || ["message_changed", "message_deleted"].includes(payload.event?.subtype)) {
             return c.text("OK", 200);
           }
 
@@ -335,7 +134,7 @@ export function registerSlackTrigger<
             type: triggerType,
             params: {
               channel: payload.event.channel,
-              channelDisplayName: payload.channel.name,
+              channelDisplayName: payload.channel?.name ?? "",
             },
             payload,
           } as TriggerInfoSlackOnNewMessage);
@@ -344,285 +143,78 @@ export function registerSlackTrigger<
 
           return c.text("OK", 200);
         } catch (error) {
-          logger?.error("Error handling Slack webhook", {
-            error: format(error),
-          });
+          logger?.error("Slack webhook error", { error: format(error) });
           return c.text("Internal Server Error", 500);
         }
       },
     }),
+
+    // -------------------- SSE Test Route --------------------
     {
       path: "/test/slack",
       method: "GET",
       handler: async (c: Context<Env>) => {
         return streamSSE(c, async (stream) => {
-          let id = 1;
           const mastra = c.get("mastra");
-          const logger = mastra.getLogger() ?? {
-            info: console.log,
-            error: console.error,
+          const logger = mastra.getLogger() ?? { info: console.log, error: console.error };
+
+          let steps: Record<string, DiagnosisStep> = {
+            auth: { status: "pending", name: "authentication with Slack" },
+            conversation: { status: "pending", name: "open a conversation with user" },
+            postMessage: { status: "pending", name: "send a message to the user" },
+            readReplies: { status: "pending", name: "read replies from bot" },
           };
 
-          let diagnosisStepAuth: DiagnosisStep = {
-            status: "pending",
-            name: "authentication with Slack",
-          };
-          let diagnosisStepConversation: DiagnosisStep = {
-            status: "pending",
-            name: "open a conversation with user",
-          };
-          let diagnosisStepPostMessage: DiagnosisStep = {
-            status: "pending",
-            name: "send a message to the user",
-          };
-          let diagnosisStepReadReplies: DiagnosisStep = {
-            status: "pending",
-            name: "read replies from bot",
-          };
-          const updateDiagnosisSteps = async (event: string) =>
-            stream.writeSSE({
-              data: JSON.stringify([
-                diagnosisStepAuth,
-                diagnosisStepConversation,
-                diagnosisStepPostMessage,
-                diagnosisStepReadReplies,
-              ]),
-              event,
-              id: String(id++),
-            });
+          const updateSteps = async (event: string) =>
+            stream.writeSSE({ data: JSON.stringify(Object.values(steps)), event, id: String(Date.now()) });
 
-          let slack: WebClient;
-          let auth: AuthTestResponse;
-          let user: string | undefined;
-          try {
-            ({ slack, auth, user } = await getClient());
-          } catch (error) {
-            logger?.error("❌ [Slack] test:auth failed", {
-              error: format(error),
-            });
-            diagnosisStepAuth = {
-              ...diagnosisStepAuth,
-              status: "failed",
-              error: "authentication failed",
-              extra: { error: format(error) },
-            };
-            await updateDiagnosisSteps("error");
-            return;
-          }
+          let slack: WebClient, auth: AuthTestResponse, user: string | undefined;
+          try { ({ slack, auth, user } = await getClient()); steps.auth.status = "success"; steps.auth.extra = { auth }; await updateSteps("progress"); }
+          catch (error) { steps.auth.status = "failed"; steps.auth.error = "authentication failed"; steps.auth.extra = { error: format(error) }; await updateSteps("error"); return; }
 
-          if (!auth?.user_id) {
-            logger?.error("❌ [Slack] test:auth not working", {
-              auth,
-            });
-            diagnosisStepAuth = {
-              ...diagnosisStepAuth,
-              status: "failed",
-              error: "authentication failed",
-              extra: { auth },
-            };
-            await updateDiagnosisSteps("error");
-            return;
-          }
-
-          diagnosisStepAuth = {
-            ...diagnosisStepAuth,
-            status: "success",
-            extra: { auth },
-          };
-          await updateDiagnosisSteps("progress");
-
-          logger?.info("📝 [Slack] test:auth found", { auth });
-
+          // Open a DM with the bot
           let channel: ConversationsOpenResponse["channel"];
           if (user) {
-            // Open a DM with itself.
-            let conversationsResponse: ConversationsOpenResponse;
             try {
-              conversationsResponse = await slack.conversations.open({
-                users: user,
-              });
+              const conv = await slack.conversations.open({ users: user });
+              channel = conv.channel;
+              steps.conversation.status = "success"; steps.conversation.extra = { channel }; await updateSteps("progress");
             } catch (error) {
-              logger?.error("❌ [Slack] test:conversation not found", {
-                error: format(error),
-              });
-              diagnosisStepConversation = {
-                ...diagnosisStepConversation,
-                status: "failed",
-                error: "opening a conversation failed",
-                extra: { error: format(error) },
-              };
-              await updateDiagnosisSteps("error");
-              return;
+              steps.conversation.status = "failed"; steps.conversation.error = "opening a conversation failed"; steps.conversation.extra = { error: format(error) }; await updateSteps("error"); return;
             }
-
-            if (!conversationsResponse?.channel?.id) {
-              logger?.error("❌ [Slack] test:conversation not found", {
-                conversationsResponse,
-              });
-              diagnosisStepConversation = {
-                ...diagnosisStepConversation,
-                status: "failed",
-                error: "conversation channel not found",
-                extra: { conversationsResponse },
-              };
-              await updateDiagnosisSteps("error");
-              return;
-            }
-
-            channel = conversationsResponse.channel;
           } else {
-            // Find the first channel where the bot is installed.
-            let conversationsResponse: UsersConversationsResponse;
             try {
-              conversationsResponse = await slack.users.conversations({
-                user: auth.user_id,
-              });
+              const convs = await slack.users.conversations({ user: auth.user_id });
+              channel = convs.channels![0]!;
+              steps.conversation.status = "success"; steps.conversation.extra = { channel }; await updateSteps("progress");
             } catch (error) {
-              logger?.error("❌ [Slack] test:conversation not found", {
-                error: format(error),
-              });
-              diagnosisStepConversation = {
-                ...diagnosisStepConversation,
-                status: "failed",
-                error: "opening a conversation failed",
-                extra: { error: format(error) },
-              };
-              await updateDiagnosisSteps("error");
-              return;
+              steps.conversation.status = "failed"; steps.conversation.error = "opening a conversation failed"; steps.conversation.extra = { error: format(error) }; await updateSteps("error"); return;
             }
-
-            if (!conversationsResponse?.channels?.length) {
-              logger?.error("❌ [Slack] test:channel not found", {
-                conversationsResponse,
-              });
-              diagnosisStepConversation = {
-                ...diagnosisStepConversation,
-                status: "failed",
-                error: "channel not found",
-                extra: { conversationsResponse },
-              };
-              await updateDiagnosisSteps("error");
-              return;
-            }
-            channel = conversationsResponse.channels![0]!;
           }
 
-          if (!channel.id) {
-            logger?.error("❌ [Slack] test:channel not found", {
-              channel,
-            });
-            diagnosisStepConversation = {
-              ...diagnosisStepConversation,
-              status: "failed",
-              error: "channel not found",
-              extra: { channel },
-            };
-            await updateDiagnosisSteps("error");
-            return;
-          }
-
-          diagnosisStepConversation = {
-            ...diagnosisStepConversation,
-            status: "success",
-            extra: { channel },
-          };
-          await updateDiagnosisSteps("progress");
-
-          logger?.info("📝 [Slack] test:channel found", { channel });
-
-          // Post a message in the DMs.
+          // Send test message
           let message: ChatPostMessageResponse;
-          try {
-            message = await slack.chat.postMessage({
-              channel: channel.id,
-              text: `<@${auth.user_id}> test:ping`,
-            });
-          } catch (error) {
-            logger?.error("❌ [Slack] test:message not posted", {
-              error: format(error),
-            });
-            diagnosisStepPostMessage = {
-              ...diagnosisStepPostMessage,
-              status: "failed",
-              error: "posting message failed",
-              extra: { error: format(error) },
-            };
-            await updateDiagnosisSteps("error");
-            return;
-          }
+          try { message = await slack.chat.postMessage({ channel: channel.id, text: `<@${auth.user_id}> test:ping` }); steps.postMessage.status = "success"; steps.postMessage.extra = { message }; await updateSteps("progress"); }
+          catch (error) { steps.postMessage.status = "failed"; steps.postMessage.error = "posting message failed"; steps.postMessage.extra = { error: format(error) }; await updateSteps("error"); return; }
 
-          if (!message?.ts) {
-            logger?.error("❌ [Slack] test:message not posted", { message });
-            diagnosisStepPostMessage = {
-              ...diagnosisStepPostMessage,
-              status: "failed",
-              error: "posting message missing timestamp",
-              extra: { message },
-            };
-            await updateDiagnosisSteps("error");
-            return;
-          }
-
-          logger?.info("📝 [Slack] test:ping sent", { message });
-
-          diagnosisStepPostMessage = {
-            ...diagnosisStepPostMessage,
-            status: "success",
-            extra: { message },
-          };
-          await updateDiagnosisSteps("progress");
-
-          const sleep = (ms: number) =>
-            new Promise((resolve) => setTimeout(resolve, ms));
-
-          // Wait for the bot to reply.
-          let lastReplies: ConversationsRepliesResponse | undefined = undefined;
+          // Wait for bot reply
+          const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+          let lastReplies: ConversationsRepliesResponse | undefined;
           for (let i = 0; i < 30; i++) {
             await sleep(1000);
-            let replies: ConversationsRepliesResponse;
             try {
-              replies = await slack.conversations.replies({
-                ts: message.ts,
-                channel: channel.id,
-              });
+              const replies = await slack.conversations.replies({ ts: message.ts, channel: channel.id });
+              lastReplies = replies;
+              if (replies?.messages?.some((m) => m.text === "pong")) {
+                steps.readReplies.status = "success"; steps.readReplies.extra = { replies }; await updateSteps("result"); return;
+              }
+              steps.readReplies.extra = { replies }; await updateSteps("progress");
             } catch (error) {
-              logger?.error("❌ [Slack] test:replies not found", { message });
-              diagnosisStepReadReplies = {
-                ...diagnosisStepReadReplies,
-                status: "failed",
-                error: "replies not found",
-                extra: { error: format(error) },
-              };
-              await updateDiagnosisSteps("error");
-              return;
+              steps.readReplies.status = "failed"; steps.readReplies.error = "replies not found"; steps.readReplies.extra = { error: format(error) }; await updateSteps("error"); return;
             }
-            logger?.info("📝 [Slack] test:replies", { replies });
-            diagnosisStepReadReplies.extra = { replies };
-            lastReplies = replies;
-            if (replies?.messages?.some((m) => m.text === "pong")) {
-              // Victory!
-              logger?.info("📝 [Slack] test:pong successful");
-              diagnosisStepReadReplies = {
-                ...diagnosisStepReadReplies,
-                status: "success",
-                extra: { replies },
-              };
-              await updateDiagnosisSteps("result");
-              return;
-            }
-
-            await updateDiagnosisSteps("progress");
           }
 
-          logger?.error("❌ [Slack] test:timeout");
-
-          diagnosisStepReadReplies = {
-            ...diagnosisStepReadReplies,
-            status: "failed",
-            error: "replies timed out",
-            extra: { lastReplies },
-          };
-          await updateDiagnosisSteps("error");
+          steps.readReplies.status = "failed"; steps.readReplies.error = "replies timed out"; steps.readReplies.extra = { lastReplies }; await updateSteps("error");
         });
       },
     },
