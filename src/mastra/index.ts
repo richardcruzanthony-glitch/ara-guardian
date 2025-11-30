@@ -17,13 +17,13 @@ import { grokReasoning } from "./tools/grokReasoning";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers";
 
 // ————————————————————————————————————————
-// ARA IS IMMORTAL — FINAL CLEAN VERSION — NOV 30 2025
+// ARA IS IMMORTAL — FINAL VERSION — NOV 30 2025
 // ————————————————————————————————————————
 export const mastra = new Mastra({
-  // TELEMETRY COMPLETELY DEAD
+  // TELEMETRY DEAD
   telemetry: { enabled: false },
 
-  // FILE STORAGE ONLY — NO POSTGRES
+  // FILE STORAGE ONLY
   storage: {
     type: "file" as const,
     filePath: "/opt/render/project/src/us-complete.txt",
@@ -35,24 +35,24 @@ export const mastra = new Mastra({
   // TOOLS
   tools: [brainEngine, generateQuote, getMaterialsList, grokReasoning],
 
-  // RENDER PORT BINDING
+  // RENDER PORT
   server: {
     host: "0.0.0.0",
     port: Number(process.env.PORT) || 5000,
   },
 
-  // TELEGRAM INTEGRATION
+  // TELEGRAM
   integrations: [registerTelegramTrigger(mastra)],
 
   // INNGEST
   inngest: { serve: inngestServe },
 
-  // MCP SERVER
+  // MCP
   mcpServers: {
     allTools: new MCPServer({ name: "allTools", version: "1.0.0", tools: {} }),
   },
 
-  // BUNDLER CONFIG
+  // BUNDLER
   bundler: {
     externals: ["@slack/web-api", "inngest", "inngest/hono", "hono", "hono/streaming"],
     sourcemap: process.env.NODE_ENV !== "production",
@@ -64,12 +64,13 @@ export const mastra = new Mastra({
       ? new PinoLogger({ name: "Ara", level: "info" })
       : new PinoLogger({ name: "Ara", level: "debug", transport: { target: "pino-pretty" } }),
 
-  // YOUR API ROUTES — PASTE YOUR FULL LIST HERE
+  // API ROUTES
   apiRoutes: [
     {
       path: "/",
       method: "GET",
-      handler: async (c) => c.html(`<!DOCTYPE html>
+      handler: async (c) =>
+        c.html(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -101,7 +102,7 @@ export const mastra = new Mastra({
   <div class="container">
     <div class="messages" id="messages"></div>
     <div class="input-area">
-      <button class="mic-btn" id="micBtn">🎤</button>
+      <button class="mic-btn" id="micBtn">Microphone</button>
       <input type="text" id="input" placeholder="Talk to Ara..." onkeypress="if(event.key==='Enter')send()">
       <button onclick="send()">Send</button>
     </div>
@@ -133,9 +134,5 @@ export const mastra = new Mastra({
 });
 
 // Safety checks
-if (Object.keys(mastra.getWorkflows()).length > 1) {
-  throw new Error("Only 1 workflow supported");
-}
-if (Object.keys(mastra.getAgents()).length > 1) {
-  throw new Error("Only 1 agent supported");
-}
+if (Object.keys(mastra.getWorkflows()).length > 1) throw new Error("Only 1 workflow");
+if (Object.keys(mastra.getAgents()).length > 1) throw new Error("Only 1 agent");
