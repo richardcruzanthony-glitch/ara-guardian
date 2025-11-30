@@ -25,6 +25,10 @@ export const mastra = new Mastra({
     type: "file" as const,
     filePath: "/opt/render/project/src/us-complete.txt",
   },
+  // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
+  // ADD THIS LINE RIGHT HERE — KILLS THE TELEMETRY CRASH FOREVER
+  telemetry: { enabled: false },
+  // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
 
   // WORKFLOWS & TOOLS
   workflows: { araBrainWorkflow },
