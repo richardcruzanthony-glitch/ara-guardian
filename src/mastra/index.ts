@@ -13,6 +13,7 @@ import { registerTelegramTrigger } from "../triggers/telegramTriggers";
 import { araBrainWorkflow } from "./workflows/araBrainWorkflow";
 import { brainEngine } from "./tools/brainEngine";
 import { generateQuote, getMaterialsList } from "./tools/guardianPricing";
+import { grokReasoning } from "./tools/grokReasoning";
 
 // ————————————————————————————————————————
 // ARA IS NOW IMMORTAL ON RENDER — NO POSTGRES EVER AGAIN
@@ -27,7 +28,7 @@ export const mastra = new Mastra({
 
   // WORKFLOWS & TOOLS
   workflows: { araBrainWorkflow },
-  tools: [brainEngine, generateQuote, getMaterialsList],
+  tools:[brainEngine, generateQuote, getMaterialsList, grokReasoning],
 
   // RENDER PORT FIX (REQUIRED!)
   server: {
