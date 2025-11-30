@@ -20,6 +20,7 @@ import { grokReasoning } from "./tools/grokReasoning";
 // ————————————————————————————————————————
 
 export const mastra = new Mastra({
+    telemetry: { enabled: false },
   // FILE STORAGE ONLY — POSTGRES IS DEAD
   storage: {
     type: "file" as const,
@@ -27,7 +28,7 @@ export const mastra = new Mastra({
   },
   // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
   // ADD THIS LINE RIGHT HERE — KILLS THE TELEMETRY CRASH FOREVER
-  telemetry: { enabled: false },
+
   // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
 
   // WORKFLOWS & TOOLS
