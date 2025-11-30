@@ -21,15 +21,10 @@ import { grokReasoning } from "./tools/grokReasoning";
 
 export const mastra = new Mastra({
     telemetry: { enabled: false },
-  // FILE STORAGE ONLY — POSTGRES IS DEAD
   storage: {
     type: "file" as const,
     filePath: "/opt/render/project/src/us-complete.txt",
   },
-  // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
-  // ADD THIS LINE RIGHT HERE — KILLS THE TELEMETRY CRASH FOREVER
-
-  // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
 
   // WORKFLOWS & TOOLS
   workflows: { araBrainWorkflow },
