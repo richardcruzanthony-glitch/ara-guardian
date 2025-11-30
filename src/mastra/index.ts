@@ -10,29 +10,29 @@
 import { MastraApp, Mastra } from "mastra";
 
 // --- Agents ---
-import { exampleAgent } from "./agents/exampleAgent"; // Fixed relative path
+import { exampleAgent } from "./agents/exampleAgent"; // Fixed path
 
 // --- Workflows ---
-import { araBrainWorkflow } from "../workflows/araBrainWorkflow";
-import { exampleWorkflow } from "../workflows/exampleWorkflow";
+import { araBrainWorkflow } from "./workflows/araBrainWorkflow";
+import { exampleWorkflow } from "./workflows/exampleWorkflow";
 
 // --- Triggers ---
-import { cronTriggers } from "../triggers/cronTriggers";
-import { exampleConnectorTrigger } from "../triggers/exampleConnectorTrigger";
-import { slackTriggers } from "../triggers/slackTriggers";
-import { telegramTriggers } from "../triggers/telegramTriggers";
+import { cronTriggers } from "./triggers/cronTriggers";
+import { exampleConnectorTrigger } from "./triggers/exampleConnectorTrigger";
+import { slackTriggers } from "./triggers/slackTriggers";
+import { telegramTriggers } from "./triggers/telegramTriggers";
 
 // --- Tools ---
-import { exampleTool } from "../tools/exampleTool";
-import { autoPostTool } from "../tools/autoPostTool";
-import { brainEngine } from "../tools/brainEngine";
-import { grokReasoning } from "../tools/grokReasoning";
-import { guardianPricing } from "../tools/guardianPricing";
-import { guardianQuoteTool } from "../tools/guardianQuoteTool";
-import { textMatchTool } from "../tools/textMatchTool";
+import { exampleTool } from "./tools/exampleTool";
+import { autoPostTool } from "./tools/autoPostTool";
+import { brainEngine } from "./tools/brainEngine";
+import { grokReasoning } from "./tools/grokReasoning";
+import { guardianPricing } from "./tools/guardianPricing";
+import { guardianQuoteTool } from "./tools/guardianQuoteTool";
+import { textMatchTool } from "./tools/textMatchTool";
 
 // --- Storage ---
-import { sharedPostgresStorage } from "../storage";
+import { sharedPostgresStorage } from "./storage";
 
 // --- Mastra App ---
 export const app = new MastraApp({
