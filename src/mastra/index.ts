@@ -3,14 +3,13 @@
  * Mastra Entry Point
  *
  * Registers all agents, workflows, triggers, and global tools.
- * Paths are verified against the current project structure.
  */
 
 // --- Mastra core ---
 import { MastraApp, Mastra } from "mastra";
 
 // --- Agents ---
-import { exampleAgent } from "./agents/exampleAgent"; // Fixed path
+import { exampleAgent } from "./agents/exampleAgent";
 
 // --- Workflows ---
 import { araBrainWorkflow } from "./workflows/araBrainWorkflow";
