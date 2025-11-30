@@ -1,42 +1,55 @@
 /**
- * Mastra Main Entry
+ * Main Mastra initialization file
  *
- * This sets up workflows and triggers for your application.
- * Telegram triggers are webhook-based and added to apiRoutes.
- * Cron triggers are scheduled and registered before Mastra initialization.
+ * This file sets up all triggers (cron, Telegram, etc.) before creating
+ * the Mastra instance.
  */
 
-import { Mastra } from "@mastra/core";
-import { registerTelegramTrigger } from "../triggers/telegramTriggers";
+import { Mastra } from "mastra"; // adjust import if different
 import { registerCronTrigger } from "../triggers/cronTriggers";
+import { registerTelegramTrigger } from "../triggers/telegramTriggers";
 
-// Import your actual workflow files
-import { telegramBotWorkflow } from "./workflows/telegramBotWorkflow";
-import { anotherWorkflow } from "./workflows/anotherWorkflow"; // replace if different
+// Import workflows that actually exist
+import { araBrainWorkflow } from "../workflows/araBrainWorkflow";
+import { exampleWorkflow } from "../workflows/exampleWorkflow";
 
-// --------------------
-// Cron Trigger Setup
-// --------------------
-// Register any cron workflows BEFORE creating Mastra instance
+/**
+ * ------------------------------
+ * Register Cron Triggers
+ * ------------------------------
+ * Example: Run exampleWorkflow daily at 8 AM
+ */
 registerCronTrigger({
-  cronExpression: "0 8 * * *", // Example: daily at 8 AM
-  workflow: anotherWorkflow, // Replace with the workflow you want to run on a schedule
+  cronExpression: "0 8 * * *", // Daily at 8 AM
+  workflow: exampleWorkflow
 });
 
-// --------------------
-// Mastra Instance
-// --------------------
+/**
+ * ------------------------------
+ * Register Telegram Triggers
+ * ------------------------------
+ * This sets up a Telegram message trigger that starts araBrainWorkflow.
+ * You can extend this for multiple Telegram workflows if needed.
+ */
+export const apiRoutes = [
+  ...registerTelegramTrigger({
+    triggerType: "telegram/message",
+    handler: async (mastra, triggerInfo) => {
+      // Start a run of araBrainWorkflow when a Telegram message is received
+      const run = await araBrainWorkflow.createRunAsync();
+      return await run.start({ inputData: { message: triggerInfo.message } });
+    }
+  })
+];
+
+/**
+ * ------------------------------
+ * Create Mastra instance
+ * ------------------------------
+ */
 export const mastra = new Mastra({
-  // Add Mastra config if needed
-  apiRoutes: [
-    // Telegram Trigger Setup
-    ...registerTelegramTrigger({
-      triggerType: "telegram/message",
-      handler: async (mastra, triggerInfo) => {
-        const run = await telegramBotWorkflow.createRunAsync();
-        return await run.start({ inputData: {} });
-      },
-    }),
-    // You can add more webhook triggers here if needed
-  ],
+  // Add your Mastra configuration here
+  // Example:
+  name: "ara-guardian",
+  apiRoutes, // include the Telegram triggers
 });
