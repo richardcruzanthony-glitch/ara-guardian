@@ -1,43 +1,45 @@
-/**
- * Telegram Trigger - Webhook-based Workflow Triggering
- *
- * This module provides Telegram bot event handling for Mastra workflows.
- * When Telegram messages are received, this trigger starts your workflow.
- *
- * PATTERN:
- * 1. Import registerTelegramTrigger and your workflow
- * 2. Call registerTelegramTrigger with a triggerType and handler
- * 3. Spread the result into the apiRoutes array in src/mastra/index.ts
- *
- * USAGE in src/mastra/index.ts:
- *
- * ```typescript
- * import { registerTelegramTrigger } from "../triggers/telegramTriggers";
- * import { telegramBotWorkflow } from "./workflows/telegramBotWorkflow";
- *
- * // In the apiRoutes array:
- * ...registerTelegramTrigger({
- *   triggerType: "telegram/message",
- *   handler: async (mastra, triggerInfo) => {
- *     const run = await telegramBotWorkflow.createRunAsync();
- *     return await run.start({ inputData: {} });
- *   }
- * })
- * ```
- */
+export function registerTelegramTrigger({
+  triggerType,
+  handler,
+}: {
+  triggerType: string;
+  handler: (
+    mastra: Mastra,
+    triggerInfo: TriggerInfoTelegramOnNewMessage,
+  ) => Promise<void>;
+}) {
+  return [
+    registerApiRoute("/webhooks/telegram/action", {
+      method: "POST",
+      handler: async (c) => {
+        const mastra = c.get("mastra");
+        const logger = mastra.getLogger();
+        try {
+          const payload = await c.req.json();
 
-import { registerApiRoute } from "../mastra/inngest";
-import { Mastra } from "@mastra/core";
+          logger?.info("📝 [Telegram] payload", payload);
 
-if (!process.env.BOT_TOKEN) {
-  console.warn(
-    "⚠️ BOT_TOKEN environment variable not set. Telegram triggers may not work until configured."
-  );
+          const message = payload.message || payload.edited_message;
+          if (!message || !message.text) {
+            logger?.info("📝 [Telegram] Ignoring non-text message");
+            return c.text("OK", 200);
+          }
+
+          await handler(mastra, {
+            type: triggerType,
+            params: {
+              userName: message.from?.username || message.from?.first_name || "unknown",
+              message: message.text,
+            },
+            payload,
+          } as TriggerInfoTelegramOnNewMessage);
+
+          return c.text("OK", 200);
+        } catch (error) {
+          logger?.error("Error handling Telegram webhook:", error);
+          return c.text("Internal Server Error", 500);
+        }
+      },
+    }),
+  ];
 }
-
-export type TriggerInfoTelegramOnNewMessage = {
-  type: "telegram/message";
-  params: {
-    userName: string;
-    message: string;
-  };
