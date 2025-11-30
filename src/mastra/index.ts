@@ -10,7 +10,7 @@
 import { MastraApp, Mastra } from "mastra";
 
 // --- Agents ---
-import { exampleAgent } from "../agents/exampleAgent";
+import { exampleAgent } from "./agents/exampleAgent"; // Fixed relative path
 
 // --- Workflows ---
 import { araBrainWorkflow } from "../workflows/araBrainWorkflow";
