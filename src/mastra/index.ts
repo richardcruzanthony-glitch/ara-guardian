@@ -1,137 +1,42 @@
-import { Mastra } from "@mastra/core";
-import { PinoLogger } from "@mastra/loggers";
-import { MCPServer } from "@mastra/mcp";
-import pino from "pino";
+/**
+ * Mastra Main Entry
+ *
+ * This sets up workflows and triggers for your application.
+ * Telegram triggers are webhook-based and added to apiRoutes.
+ * Cron triggers are scheduled and registered before Mastra initialization.
+ */
 
-import { inngest, inngestServe } from "./inngest";
+import { Mastra } from "@mastra/core";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers";
 import { registerCronTrigger } from "../triggers/cronTriggers";
 
-import { araBrainWorkflow } from "./workflows/araBrainWorkflow";
-import { physicsJokeWorkflow } from "./workflows/physicsJokeWorkflow"; // Example cron workflow
-import { brainEngine } from "./tools/brainEngine";
-import { generateQuote, getMaterialsList } from "./tools/guardianPricing";
-import { grokReasoning } from "./tools/grokReasoning";
+// Import your actual workflow files
+import { telegramBotWorkflow } from "./workflows/telegramBotWorkflow";
+import { anotherWorkflow } from "./workflows/anotherWorkflow"; // replace if different
 
-/**
- * -----------------------------
- * CRON TRIGGERS
- * -----------------------------
- * Register all cron-based workflows BEFORE Mastra initialization.
- * Cron triggers do not create HTTP routes.
- */
+// --------------------
+// Cron Trigger Setup
+// --------------------
+// Register any cron workflows BEFORE creating Mastra instance
 registerCronTrigger({
-  cronExpression: "0 8 * * *", // Daily at 8 AM
-  workflow: physicsJokeWorkflow,
+  cronExpression: "0 8 * * *", // Example: daily at 8 AM
+  workflow: anotherWorkflow, // Replace with the workflow you want to run on a schedule
 });
 
-/**
- * -----------------------------
- * MASRA INSTANCE
- * -----------------------------
- * Initialize Mastra with AI Tracing, Telegram integration, MCP server, etc.
- */
+// --------------------
+// Mastra Instance
+// --------------------
 export const mastra = new Mastra({
-  // AI TRACING (replaces old telemetry)
-  tracing: {
-    enabled: true,
-    provider: "mastra",
-  },
-
-  // STORAGE
-  storage: {
-    type: "file" as const,
-    filePath: "/opt/render/project/src/us-complete.txt",
-  },
-
-  // WORKFLOWS & TOOLS
-  workflows: { araBrainWorkflow },
-  tools: [brainEngine, generateQuote, getMaterialsList, grokReasoning],
-
-  // SERVER CONFIG FOR RENDER
-  server: {
-    host: "0.0.0.0",
-    port: Number(process.env.PORT) || 10000,
-  },
-
-  // TELEGRAM INTEGRATION
-  integrations: [
-    registerTelegramTrigger({
-      botToken: process.env.BOT_TOKEN!,
+  // Add Mastra config if needed
+  apiRoutes: [
+    // Telegram Trigger Setup
+    ...registerTelegramTrigger({
       triggerType: "telegram/message",
       handler: async (mastra, triggerInfo) => {
-        const logger = mastra.getLogger();
-        logger?.info("📨 [Telegram] Message received", {
-          userName: triggerInfo.params.userName,
-          message: triggerInfo.params.message,
-        });
-
-        const chatId = triggerInfo.payload.message.chat.id;
-        const run = await araBrainWorkflow.createRunAsync();
-        await run.start({
-          inputData: {
-            message: triggerInfo.params.message,
-            chatId,
-          },
-        });
+        const run = await telegramBotWorkflow.createRunAsync();
+        return await run.start({ inputData: {} });
       },
     }),
-  ],
-
-  // INNGEST
-  inngest: { serve: inngestServe },
-
-  // MCP SERVER
-  mcpServers: {
-    allTools: new MCPServer({
-      name: "allTools",
-      version: "1.0.0",
-      tools: {},
-    }),
-  },
-
-  // BUNDLER CONFIG
-  bundler: {
-    externals: [
-      "@slack/web-api",
-      "inngest",
-      "inngest/hono",
-      "hono",
-      "hono/streaming",
-    ],
-    sourcemap: process.env.NODE_ENV !== "production",
-  },
-
-  // LOGGER CONFIG
-  logger:
-    process.env.NODE_ENV === "production"
-      ? new PinoLogger({ name: "Ara", level: "info" })
-      : new PinoLogger({
-          name: "Ara",
-          level: "debug",
-          transport: { target: "pino-pretty" },
-        }),
-
-  // BASIC API ROUTES
-  apiRoutes: [
-    {
-      path: "/",
-      method: "GET",
-      handler: async (c) => c.html(`Hello from Ara! 🚀`),
-    },
+    // You can add more webhook triggers here if needed
   ],
 });
-
-/**
- * -----------------------------
- * SAFETY CHECKS
- * -----------------------------
- * Ensure only 1 workflow and 1 agent are registered
- */
-if (Object.keys(mastra.getWorkflows()).length > 1) {
-  throw new Error("Only 1 workflow supported");
-}
-
-if (Object.keys(mastra.getAgents()).length > 1) {
-  throw new Error("Only 1 agent supported");
-}
