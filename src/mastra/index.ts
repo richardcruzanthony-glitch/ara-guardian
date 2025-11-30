@@ -1,4 +1,3 @@
-
 import { Mastra } from "@mastra/core";
 import { MastraError } from "@mastra/core/error";
 import { PinoLogger } from "@mastra/loggers";
@@ -16,20 +15,13 @@ import { brainEngine } from "./tools/brainEngine";
 import { generateQuote, getMaterialsList } from "./tools/guardianPricing";
 import { grokReasoning } from "./tools/grokReasoning";
 
-// ————————————————————————————————————————
-// ARA IS NOW IMMORTAL ON RENDER — NO POSTGRES EVER AGAIN
-// ————————————————————————————————————————
-
 /**
- * Sanitize telemetry env var: Render stores env vars as strings.
- * Only the literal string "true" (case-insensitive) enables telemetry.
- * Everything else -> false to avoid calling storage.__setTelemetry.
+ * HARD DISABLE MASRA TELEMETRY — prevents __setTelemetry crash
  */
-const telemetryEnv = String(process.env.MASTRA_TELEMETRY_ENABLED ?? "").toLowerCase();
-const telemetry = telemetryEnv === "true" ? { enabled: true } : false;
+const telemetry = { enabled: false };
 
 export const mastra = new Mastra({
-  telemetry, // either false or { enabled: true }
+  telemetry,
 
   storage: {
     type: "file" as const,
@@ -40,13 +32,13 @@ export const mastra = new Mastra({
   workflows: { araBrainWorkflow },
   tools: [brainEngine, generateQuote, getMaterialsList, grokReasoning],
 
-  // RENDER PORT FIX (REQUIRED!)
+  // RENDER PORT FIX
   server: {
     host: "0.0.0.0",
     port: Number(process.env.PORT) || 10000,
   },
 
-  // TELEGRAM — TOKEN FROM ENV
+  // TELEGRAM BOT INTEGRATION
   integrations: [
     registerTelegramTrigger({
       botToken: process.env.BOT_TOKEN!,
@@ -60,6 +52,7 @@ export const mastra = new Mastra({
 
         const chatId = triggerInfo.payload.message.chat.id;
         const run = await araBrainWorkflow.createRunAsync();
+
         await run.start({
           inputData: {
             message: triggerInfo.params.message,
@@ -73,14 +66,24 @@ export const mastra = new Mastra({
   // INNGEST
   inngest: { serve: inngestServe },
 
-  // MCP
+  // MCP SERVER
   mcpServers: {
-    allTools: new MCPServer({ name: "allTools", version: "1.0.0", tools: {} }),
+    allTools: new MCPServer({
+      name: "allTools",
+      version: "1.0.0",
+      tools: {},
+    }),
   },
 
   // BUNDLER
   bundler: {
-    externals: ["@slack/web-api", "inngest", "inngest/hono", "hono", "hono/streaming"],
+    externals: [
+      "@slack/web-api",
+      "inngest",
+      "inngest/hono",
+      "hono",
+      "hono/streaming"
+    ],
     sourcemap: process.env.NODE_ENV !== "production",
   },
 
@@ -88,23 +91,27 @@ export const mastra = new Mastra({
   logger:
     process.env.NODE_ENV === "production"
       ? new PinoLogger({ name: "Ara", level: "info" })
-      : new PinoLogger({ name: "Ara", level: "debug", transport: { target: "pino-pretty" } }),
+      : new PinoLogger({
+          name: "Ara",
+          level: "debug",
+          transport: { target: "pino-pretty" },
+        }),
 
-  // API ROUTES (collapsed for brevity)
+  // BASIC API ROUTE
   apiRoutes: [
     {
       path: "/",
       method: "GET",
       handler: async (c) => c.html(`...`),
     },
-    // other routes...
   ],
 });
 
-// Safety checks
+// SAFETY CHECKS
 if (Object.keys(mastra.getWorkflows()).length > 1) {
   throw new Error("Only 1 workflow supported");
 }
+
 if (Object.keys(mastra.getAgents()).length > 1) {
   throw new Error("Only 1 agent supported");
 }
