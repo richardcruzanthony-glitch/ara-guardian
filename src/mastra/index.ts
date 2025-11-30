@@ -1,28 +1,44 @@
 import { Mastra } from "@mastra/core";
-import { MastraError } from "@mastra/core/error";
 import { PinoLogger } from "@mastra/loggers";
-import { LogLevel } from "@mastra/core/logger";
-import pino from "pino";
 import { MCPServer } from "@mastra/mcp";
-import { NonRetriableError } from "inngest";
-import { z } from "zod";
-import puppeteer from "puppeteer";
+import pino from "pino";
 
 import { inngest, inngestServe } from "./inngest";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers";
+import { registerCronTrigger } from "../triggers/cronTriggers";
+
 import { araBrainWorkflow } from "./workflows/araBrainWorkflow";
+import { physicsJokeWorkflow } from "./workflows/physicsJokeWorkflow"; // Example cron workflow
 import { brainEngine } from "./tools/brainEngine";
 import { generateQuote, getMaterialsList } from "./tools/guardianPricing";
 import { grokReasoning } from "./tools/grokReasoning";
 
 /**
- * HARD DISABLE MASRA TELEMETRY — prevents __setTelemetry crash
+ * -----------------------------
+ * CRON TRIGGERS
+ * -----------------------------
+ * Register all cron-based workflows BEFORE Mastra initialization.
+ * Cron triggers do not create HTTP routes.
  */
-const telemetry = { enabled: false };
+registerCronTrigger({
+  cronExpression: "0 8 * * *", // Daily at 8 AM
+  workflow: physicsJokeWorkflow,
+});
 
+/**
+ * -----------------------------
+ * MASRA INSTANCE
+ * -----------------------------
+ * Initialize Mastra with AI Tracing, Telegram integration, MCP server, etc.
+ */
 export const mastra = new Mastra({
-  telemetry,
+  // AI TRACING (replaces old telemetry)
+  tracing: {
+    enabled: true,
+    provider: "mastra",
+  },
 
+  // STORAGE
   storage: {
     type: "file" as const,
     filePath: "/opt/render/project/src/us-complete.txt",
@@ -32,13 +48,13 @@ export const mastra = new Mastra({
   workflows: { araBrainWorkflow },
   tools: [brainEngine, generateQuote, getMaterialsList, grokReasoning],
 
-  // RENDER PORT FIX
+  // SERVER CONFIG FOR RENDER
   server: {
     host: "0.0.0.0",
     port: Number(process.env.PORT) || 10000,
   },
 
-  // TELEGRAM BOT INTEGRATION
+  // TELEGRAM INTEGRATION
   integrations: [
     registerTelegramTrigger({
       botToken: process.env.BOT_TOKEN!,
@@ -52,7 +68,6 @@ export const mastra = new Mastra({
 
         const chatId = triggerInfo.payload.message.chat.id;
         const run = await araBrainWorkflow.createRunAsync();
-
         await run.start({
           inputData: {
             message: triggerInfo.params.message,
@@ -75,19 +90,19 @@ export const mastra = new Mastra({
     }),
   },
 
-  // BUNDLER
+  // BUNDLER CONFIG
   bundler: {
     externals: [
       "@slack/web-api",
       "inngest",
       "inngest/hono",
       "hono",
-      "hono/streaming"
+      "hono/streaming",
     ],
     sourcemap: process.env.NODE_ENV !== "production",
   },
 
-  // LOGGER
+  // LOGGER CONFIG
   logger:
     process.env.NODE_ENV === "production"
       ? new PinoLogger({ name: "Ara", level: "info" })
@@ -97,17 +112,22 @@ export const mastra = new Mastra({
           transport: { target: "pino-pretty" },
         }),
 
-  // BASIC API ROUTE
+  // BASIC API ROUTES
   apiRoutes: [
     {
       path: "/",
       method: "GET",
-      handler: async (c) => c.html(`...`),
+      handler: async (c) => c.html(`Hello from Ara! 🚀`),
     },
   ],
 });
 
-// SAFETY CHECKS
+/**
+ * -----------------------------
+ * SAFETY CHECKS
+ * -----------------------------
+ * Ensure only 1 workflow and 1 agent are registered
+ */
 if (Object.keys(mastra.getWorkflows()).length > 1) {
   throw new Error("Only 1 workflow supported");
 }
