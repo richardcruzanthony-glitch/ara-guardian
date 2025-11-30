@@ -20,7 +20,7 @@ import { grokReasoning } from "./tools/grokReasoning";
 // ————————————————————————————————————————
 
 export const mastra = new Mastra({
-    telemetry: { enabled: false },
+    telemetry: false ,
   storage: {
     type: "file" as const,
     filePath: "/opt/render/project/src/us-complete.txt",
