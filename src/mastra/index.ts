@@ -2,14 +2,12 @@
 /**
  * Mastra Entry Point
  *
- * Registers all agents, workflows, triggers, and tools
- * for the Mastra application. Paths are aligned with
- * your project structure.
+ * Registers all agents, workflows, triggers, and global tools.
+ * Paths are verified against the current project structure.
  */
 
 // --- Mastra core ---
-import { MastraApp } from "mastra";
-import { Mastra } from "mastra";
+import { MastraApp, Mastra } from "mastra";
 
 // --- Agents ---
 import { exampleAgent } from "../agents/exampleAgent";
@@ -19,10 +17,10 @@ import { araBrainWorkflow } from "../workflows/araBrainWorkflow";
 import { exampleWorkflow } from "../workflows/exampleWorkflow";
 
 // --- Triggers ---
-import { telegramTriggers } from "../triggers/telegramTriggers";
-import { slackTriggers } from "../triggers/slackTriggers";
 import { cronTriggers } from "../triggers/cronTriggers";
 import { exampleConnectorTrigger } from "../triggers/exampleConnectorTrigger";
+import { slackTriggers } from "../triggers/slackTriggers";
+import { telegramTriggers } from "../triggers/telegramTriggers";
 
 // --- Tools ---
 import { exampleTool } from "../tools/exampleTool";
@@ -33,24 +31,24 @@ import { guardianPricing } from "../tools/guardianPricing";
 import { guardianQuoteTool } from "../tools/guardianQuoteTool";
 import { textMatchTool } from "../tools/textMatchTool";
 
-// --- Shared Storage ---
+// --- Storage ---
 import { sharedPostgresStorage } from "../storage";
 
-// --- Initialize Mastra App ---
+// --- Mastra App ---
 export const app = new MastraApp({
   workflows: [
     araBrainWorkflow,
     exampleWorkflow,
   ],
   triggers: [
-    telegramTriggers,
-    slackTriggers,
     cronTriggers,
     exampleConnectorTrigger,
+    slackTriggers,
+    telegramTriggers,
   ],
 });
 
-// --- Initialize Mastra Instance ---
+// --- Mastra Core ---
 export const mastra = new Mastra({
   agents: [exampleAgent],
   workflows: [araBrainWorkflow, exampleWorkflow],
@@ -70,10 +68,10 @@ export const mastra = new Mastra({
       lastMessages: 10,
     },
   },
-  // debug: true, // Optional: enable debug logs if needed
+  // debug: true, // Optional
 });
 
-// --- Optional: start the Mastra app if running this file directly ---
+// --- Auto-start if run directly ---
 if (require.main === module) {
   app.start().catch((err) => {
     console.error("Mastra app failed to start:", err);
