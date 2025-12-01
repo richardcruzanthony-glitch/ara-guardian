@@ -1,6 +1,9 @@
 import { Mastra } from "@mastra/core";
 import { MCPServer } from "@mastra/mcp";
 
+// KILL TELEMETRY BEFORE ANYTHING ELSE
+process.env.MASTRA_TELEMETRY_ENABLED = "false";
+
 import { brainEngine } from "./tools/brainEngine";
 import { generateQuote, getMaterialsList } from "./tools/guardianPricing";
 import { grokReasoning } from "./tools/grokReasoning";
