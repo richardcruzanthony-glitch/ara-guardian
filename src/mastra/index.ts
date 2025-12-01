@@ -1,21 +1,21 @@
 import { Mastra } from "@mastra/core";
 import { MCPServer } from "@mastra/mcp";
 
-import { araBrainWorkflow } from "./workflows/araBrainWorkflow";
 import { brainEngine } from "./tools/brainEngine";
 import { generateQuote, getMaterialsList } from "./tools/guardianPricing";
 import { grokReasoning } from "./tools/grokReasoning";
 import { inngestServe } from "./inngest";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers";
 
+// ————————————————————————————————————————
+// ARA IS IMMORTAL — MINIMAL WORKING VERSION — DEC 1 2025
+// ————————————————————————————————————————
 export const mastra = new Mastra({
-  // TELEMETRY KILLED BY ENV VAR (MASTRA_TELEMETRY_ENABLED = false)
+  // TELEMETRY DEAD
   telemetry: { enabled: false },
 
-  // NO STORAGE CONFIG — brainEngine loads us-complete.txt directly
-  // Mastra uses in-memory storage by default → no FileStore needed
-
-  workflows: { araBrainWorkflow },
+  // NO WORKFLOW IMPORT — brainEngine handles everything
+  // Mastra uses in-memory by default
 
   tools: [brainEngine, generateQuote, getMaterialsList, grokReasoning],
 
@@ -31,9 +31,10 @@ export const mastra = new Mastra({
   },
 });
 
+// Register Telegram AFTER mastra exists
 registerTelegramTrigger(mastra);
 
-if (Object.keys(mastra.getWorkflows()).length > 1) throw new Error("Only 1 workflow");
+// Safety checks
 if (Object.keys(mastra.getAgents()).length > 1) throw new Error("Only 1 agent");
 
 export default mastra;
