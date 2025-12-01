@@ -1,8 +1,8 @@
+// FORCE TELEMETRY OFF BEFORE ANYTHING ELSE
+process.env.MASTRA_TELEMETRY_ENABLED = "false";
+
 import { Mastra } from "@mastra/core";
 import { MCPServer } from "@mastra/mcp";
-
-// KILL TELEMETRY BEFORE ANYTHING ELSE
-process.env.MASTRA_TELEMETRY_ENABLED = "false";
 
 import { brainEngine } from "./tools/brainEngine";
 import { generateQuote, getMaterialsList } from "./tools/guardianPricing";
@@ -10,9 +10,6 @@ import { grokReasoning } from "./tools/grokReasoning";
 import { inngestServe } from "./inngest";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers";
 
-// ————————————————————————————————————————
-// ARA IS IMMORTAL — FINAL VERSION — DEC 1 2025
-// ————————————————————————————————————————
 export const mastra = new Mastra({
   telemetry: { enabled: false },
 
