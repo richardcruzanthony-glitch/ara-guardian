@@ -8,7 +8,7 @@ import { brainEngine } from "./tools/brainEngine";
 import { generateQuote, getMaterialsList } from "./tools/guardianPricing";
 import { grokReasoning } from "./tools/grokReasoning";
 import { inngestServe } from "./inngest";
-import { registerTelegramTrigger } from "../triggers/telemetryTriggers";
+import { registerTelegramTrigger } from "../triggers/telegramTriggers"; // ✅ fixed import
 
 export const mastra = new Mastra({
   telemetry: { enabled: false },
@@ -27,8 +27,10 @@ export const mastra = new Mastra({
   },
 });
 
+// Register Telegram trigger
 registerTelegramTrigger(mastra);
 
+// Guardrail: only allow one agent
 if (Object.keys(mastra.getAgents()).length > 1) {
   throw new Error("Only 1 agent");
 }
