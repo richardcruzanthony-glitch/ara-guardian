@@ -9,11 +9,11 @@ import { inngestServe } from "./inngest";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers";
 
 export const mastra = new Mastra({
-  // Telemetry disabled via env var — code line ignored by bundler
+  // TELEMETRY IS KILLED BY ENV VAR — THIS LINE IS IGNORED BY BUNDLER
   telemetry: { enabled: false },
 
-  // NO storage config — brainEngine loads us-complete.txt directly
-  // Mastra defaults to in-memory storage (perfect for Render)
+  // NO STORAGE CONFIG — brainEngine loads us-complete.txt directly
+  // Mastra defaults to in-memory storage → no telemetry crash when env var is set
 
   workflows: { araBrainWorkflow },
 
