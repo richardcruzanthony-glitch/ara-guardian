@@ -1,5 +1,5 @@
-// KILL TELEMETRY BEFORE BUNDLER EVEN STARTS
-process.env.MASTRA_TELEMETRY_ENABLED = "false";
+// THIS LINE KILLS TELEMETRY FOREVER — LOADED FIRST
+export * from "./telemetry-config";
 
 import { Mastra } from "@mastra/core";
 import { MCPServer } from "@mastra/mcp";
@@ -10,7 +10,6 @@ import { grokReasoning } from "./tools/grokReasoning";
 import { inngestServe } from "./inngest";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers";
 
-// ARA IS IMMORTAL — FINAL VERSION — DEC 1 2025
 export const mastra = new Mastra({
   telemetry: { enabled: false },
 
