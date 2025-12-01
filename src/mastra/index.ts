@@ -8,14 +8,10 @@ import { inngestServe } from "./inngest";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers";
 
 // ————————————————————————————————————————
-// ARA IS IMMORTAL — MINIMAL WORKING VERSION — DEC 1 2025
+// ARA IS IMMORTAL — FINAL VERSION — DEC 1 2025
 // ————————————————————————————————————————
 export const mastra = new Mastra({
-  // TELEMETRY DEAD
   telemetry: { enabled: false },
-
-  // NO WORKFLOW IMPORT — brainEngine handles everything
-  // Mastra uses in-memory by default
 
   tools: [brainEngine, generateQuote, getMaterialsList, grokReasoning],
 
@@ -31,10 +27,8 @@ export const mastra = new Mastra({
   },
 });
 
-// Register Telegram AFTER mastra exists
 registerTelegramTrigger(mastra);
 
-// Safety checks
 if (Object.keys(mastra.getAgents()).length > 1) throw new Error("Only 1 agent");
 
 export default mastra;
