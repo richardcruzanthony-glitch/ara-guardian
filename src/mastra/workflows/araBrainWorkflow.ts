@@ -3,7 +3,7 @@ import { Workflow } from "@mastra/core/workflow";
 import { brainEngine } from "../tools/brainEngine";
 import { guardianQuoteTool } from "../tools/guardianQuoteTool";
 import { grokReasoning } from "../tools/grokReasoning";
-import { getMaterialsList } from "../tools/guardianPricing"; // adjust if needed
+import { getMaterialsList } from "../tools/guardianPricing";
 
 // ---------------------------
 // ARA BRAIN WORKFLOW
@@ -17,7 +17,6 @@ export const araBrainWorkflow = new Workflow({
     prompt: {
       type: "string",
       required: true,
-      description: "User message to process using the Ara Brain pipeline.",
     },
   },
 
