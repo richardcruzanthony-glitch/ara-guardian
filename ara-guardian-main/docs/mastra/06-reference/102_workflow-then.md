@@ -1,0 +1,47 @@
+---
+title: "Reference: Workflow.then() | Workflows | Mastra Docs"
+description: Documentation for the `Workflow.then()` method in workflows, which creates sequential dependencies between steps.
+---
+
+# Workflow.then()
+[EN] Source: https://mastra.ai/en/reference/workflows/workflow-methods/then
+
+The `.then()` method creates a sequential dependency between workflow steps, ensuring steps execute in a specific order.
+
+## Usage example
+
+```typescript copy
+workflow.then(step1).then(step2);
+```
+
+## Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: "step",
+      type: "Step",
+      description:
+        "The step instance that should execute after the previous step completes",
+      isOptional: false,
+    },
+  ]}
+/>
+
+## Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: "workflow",
+      type: "NewWorkflow",
+      description: "The workflow instance for method chaining",
+    },
+  ]}
+/>
+
+## Related
+
+- [Control flow](../../../docs/workflows/control-flow.mdx)
+
+
