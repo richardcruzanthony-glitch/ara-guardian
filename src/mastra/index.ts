@@ -7,7 +7,7 @@ import { generateQuote, getMaterialsList } from "./tools/guardianPricing";
 import { grokReasoning } from "./tools/grokReasoning";
 import { inngestServe } from "./inngest";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers";
-import { setupTelemetry } from "./telemetry"; // ✅ updated import
+import { setupTelemetry } from "./telemetry"; // safe telemetry import
 
 export const mastra = new Mastra({
   telemetry: { enabled: false }, // telemetry disabled by default
