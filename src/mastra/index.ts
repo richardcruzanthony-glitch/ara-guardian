@@ -1,5 +1,5 @@
-// THIS LINE KILLS TELEMETRY FOREVER — LOADED FIRST
-export * from "./telemetry-config";
+// KILL TELEMETRY BEFORE ANYTHING — THIS IS THE ONLY WAY THAT WORKS
+process.env.MASTRA_TELEMETRY_ENABLED = "false";
 
 import { Mastra } from "@mastra/core";
 import { MCPServer } from "@mastra/mcp";
