@@ -1,69 +1,58 @@
-// src/mastra/workflows/araBrainWorkflow.ts
+import { Workflow } from "@mastra/core/workflow";
 
-import { createWorkflow, createStep } from "@mastra/workflow";
 import { brainEngine } from "../tools/brainEngine";
-import { generateQuote } from "../tools/generateQuote";
-import { getMaterialsList } from "../tools/getMaterialsList";
+import { guardianQuoteTool } from "../tools/guardianQuoteTool";
 import { grokReasoning } from "../tools/grokReasoning";
+import { getMaterialsList } from "../tools/guardianPricing"; // adjust if needed
 
-export const araBrainWorkflow = createWorkflow({
+// ---------------------------
+// ARA BRAIN WORKFLOW
+// ---------------------------
+
+export const araBrainWorkflow = new Workflow({
   id: "ara-brain-workflow",
-  name: "Ara Brain Workflow",
+  description: "Primary reasoning workflow for the Ara Guardian system.",
 
-  trigger: {
-    type: "http",
-    method: "POST",
-    path: "/brain",
+  inputs: {
+    prompt: {
+      type: "string",
+      required: true,
+      description: "User message to process using the Ara Brain pipeline.",
+    },
   },
 
-  run: async ({ step, payload }) => {
+  steps: {
+    think: async ({ inputs }) => {
+      return await brainEngine.run({
+        prompt: inputs.prompt,
+      });
+    },
 
-    // 🧠 Step 1: Use brain engine
-    const brainResult = await step.run(
-      "brain-engine",
-      async () => {
-        return await brainEngine.run({
-          message: payload.message ?? "",
-        });
-      }
-    );
+    reasoning: async ({ steps }) => {
+      return await grokReasoning.run({
+        context: steps.think.output,
+      });
+    },
 
-    // ✍️ Step 2: Generate quote
-    const quote = await step.run(
-      "generate-quote",
-      async () => generateQuote.run({})
-    );
+    materials: async ({ inputs }) => {
+      return await getMaterialsList.run({
+        query: inputs.prompt,
+      });
+    },
 
-    // 📦 Step 3: Material list if requested
-    const materials = await step.run(
-      "materials-list",
-      async () => {
-        if (payload.includeMaterials) {
-          return await getMaterialsList.run({});
-        }
-        return null;
-      }
-    );
+    quote: async ({ steps }) => {
+      return await guardianQuoteTool.run({
+        request: steps.reasoning.output,
+      });
+    },
+  },
 
-    // 🔮 Step 4: Grok reasoning (optional)
-    const reasoning = await step.run(
-      "grok-reasoning",
-      async () => {
-        if (payload.useGrok) {
-          return await grokReasoning.run({
-            input: payload.message ?? "",
-          });
-        }
-        return null;
-      }
-    );
-
+  output: async ({ steps }) => {
     return {
-      success: true,
-      brainResult,
-      quote,
-      materials,
-      reasoning,
+      analysis: steps.think.output,
+      reasoning: steps.reasoning.output,
+      materials: steps.materials.output,
+      quote: steps.quote.output,
     };
   },
 });
