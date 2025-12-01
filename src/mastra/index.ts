@@ -1,6 +1,4 @@
-// THIS LINE KILLS TELEMETRY FOREVER — LOADED BEFORE BUNDLING
-import "./telemetry";
-
+// src/mastra/index.ts
 import { Mastra } from "@mastra/core";
 import { MCPServer } from "@mastra/mcp";
 
@@ -8,10 +6,11 @@ import { brainEngine } from "./tools/brainEngine";
 import { generateQuote, getMaterialsList } from "./tools/guardianPricing";
 import { grokReasoning } from "./tools/grokReasoning";
 import { inngestServe } from "./inngest";
-import { registerTelegramTrigger } from "../triggers/telegramTriggers"; // ✅ fixed import
+import { registerTelegramTrigger } from "../triggers/telegramTriggers";
+import { setupTelemetry } from "./telemetry"; // ✅ updated import
 
 export const mastra = new Mastra({
-  telemetry: { enabled: false },
+  telemetry: { enabled: false }, // telemetry disabled by default
 
   tools: [brainEngine, generateQuote, getMaterialsList, grokReasoning],
 
@@ -29,6 +28,9 @@ export const mastra = new Mastra({
 
 // Register Telegram trigger
 registerTelegramTrigger(mastra);
+
+// Setup telemetry safely
+setupTelemetry(mastra);
 
 // Guardrail: only allow one agent
 if (Object.keys(mastra.getAgents()).length > 1) {
