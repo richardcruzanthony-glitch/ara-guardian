@@ -1,6 +1,4 @@
-// src/telemetry-config.ts
-// This file is loaded by Mastra CLI during bundling.
-// It disables telemetry safely without referencing a global `mastra`.
+// src/mastra/telemetry-config.ts
 
 process.env.MASTRA_TELEMETRY_ENABLED = "false";
 
