@@ -8,9 +8,9 @@ import { brainEngine } from "./tools/brainEngine";
 import { generateQuote, getMaterialsList } from "./tools/guardianPricing";
 import { grokReasoning } from "./tools/grokReasoning";
 import { gpt4o } from "./tools/gpt4o";
-import { scraper } from "./tools/scraper";           // ← SCRAPING
-import { skillInstaller } from "./tools/skillInstaller"; // ← AUTO-ADD SKILLS
-import { adjuster } from "./tools/adjuster";       // ← SELF-ADJUSTING LOGIC
+import { scraper } from "./tools/scraper";               // ← real-time web
+import { skillInstaller } from "./tools/skillInstaller"; // ← infinite growth
+import { adjuster } from "./tools/adjuster";             // ← never wrong twice
 import { inngestServe } from "./inngest";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers";
 
@@ -38,6 +38,7 @@ export const mastra = new Mastra({
 
 registerTelegramTrigger(mastra);
 
-if (Object.keys(mastra.getAgents()).length > 1) throw new Error("Only 1 agent");
+if (Object.keys(mastra.getAgents()).length > 1) 
+  throw new Error("Only 1 agent");
 
 export default mastra;
