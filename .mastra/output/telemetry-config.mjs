@@ -1,1 +1,1 @@
-export default { enabled: false };
+export const telemetry = { enabled: false }; export default telemetry;
