@@ -39,11 +39,11 @@ export const exampleTool = createTool({
 
   // The execute function contains your tool's logic
   // Access mastra for logging and other utilities
-  execute: async ({ context, mastra }) => {
-    const logger = mastra?.getLogger();
+  execute: async (context) => {
+    const logger = context.mastra?.getLogger();
 
     // Use logger instead of console.log for proper observability
-    logger?.info("🔧 [exampleTool] Executing with:", context);
+    logger?.info("🔧 [exampleTool] Executing with:", context.data);
 
     // In a real tool, you might:
     // 1. Call external APIs
@@ -52,8 +52,8 @@ export const exampleTool = createTool({
     // 4. Transform information
 
     // For this example, we'll do some trivial data processing
-    const processedMessage = context.message.toUpperCase();
-    const words = context.message.split(" ").filter((w) => w.length > 0);
+    const processedMessage = context.data.message.toUpperCase();
+    const words = context.data.message.split(" ").filter((w) => w.length > 0);
 
     logger?.info("✅ [exampleTool] Processing complete");
 
@@ -62,7 +62,7 @@ export const exampleTool = createTool({
       processed: processedMessage,
       timestamp: new Date().toISOString(),
       metadata: {
-        characterCount: context.message.length,
+        characterCount: context.data.message.length,
         wordCount: words.length,
       },
     };

@@ -7,14 +7,11 @@ import { Mastra } from "@mastra/core";
  * Call it from index.ts and pass in your Mastra instance.
  */
 export function setupTelemetry(mastra: Mastra) {
-  // If telemetry is disabled, do nothing
-  if (!mastra.config?.telemetry || mastra.config.telemetry.enabled === false) {
-    return;
-  }
-
-  // Example: attach telemetry hooks here
+  // Telemetry is disabled globally via environment variable
+  // No need to check config since it's not accessible in current API
+  
   const logger = mastra.getLogger();
-  logger.info("Telemetry initialized");
+  logger.info("Telemetry setup called (disabled globally)");
 
   // You can extend this with custom telemetry logic:
   // - log agent runs

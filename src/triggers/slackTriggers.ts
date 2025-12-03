@@ -21,7 +21,7 @@ import {
 import type { Context, Handler, MiddlewareHandler } from "hono";
 import { streamSSE } from "hono/streaming";
 import type { z } from "zod";
-import { registerApiRoute } from "../mastra/inngest";
+import { registerApiRoute } from "@mastra/core";
 
 export type Methods = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "ALL";
 
@@ -169,8 +169,8 @@ export function registerSlackTrigger<Env extends { Variables: { mastra: Mastra }
             stream.writeSSE({ data: JSON.stringify(Object.values(steps)), event, id: String(Date.now()) });
 
           let slack: WebClient, auth: AuthTestResponse, user: string | undefined;
-          try { ({ slack, auth, user } = await getClient()); steps.auth.status = "success"; steps.auth.extra = { auth }; await updateSteps("progress"); }
-          catch (error) { steps.auth.status = "failed"; steps.auth.error = "authentication failed"; steps.auth.extra = { error: format(error) }; await updateSteps("error"); return; }
+          try { ({ slack, auth, user } = await getClient()); steps.auth = { status: "success", name: steps.auth.name, extra: { auth } }; await updateSteps("progress"); }
+          catch (error) { steps.auth = { status: "failed", name: steps.auth.name, error: "authentication failed", extra: { error: format(error) } }; await updateSteps("error"); return; }
 
           // Open a DM with the bot
           let channel: ConversationsOpenResponse["channel"];
@@ -178,24 +178,24 @@ export function registerSlackTrigger<Env extends { Variables: { mastra: Mastra }
             try {
               const conv = await slack.conversations.open({ users: user });
               channel = conv.channel;
-              steps.conversation.status = "success"; steps.conversation.extra = { channel }; await updateSteps("progress");
+              steps.conversation = { status: "success", name: steps.conversation.name, extra: { channel } }; await updateSteps("progress");
             } catch (error) {
-              steps.conversation.status = "failed"; steps.conversation.error = "opening a conversation failed"; steps.conversation.extra = { error: format(error) }; await updateSteps("error"); return;
+              steps.conversation = { status: "failed", name: steps.conversation.name, error: "opening a conversation failed", extra: { error: format(error) } }; await updateSteps("error"); return;
             }
           } else {
             try {
               const convs = await slack.users.conversations({ user: auth.user_id });
               channel = convs.channels![0]!;
-              steps.conversation.status = "success"; steps.conversation.extra = { channel }; await updateSteps("progress");
+              steps.conversation = { status: "success", name: steps.conversation.name, extra: { channel } }; await updateSteps("progress");
             } catch (error) {
-              steps.conversation.status = "failed"; steps.conversation.error = "opening a conversation failed"; steps.conversation.extra = { error: format(error) }; await updateSteps("error"); return;
+              steps.conversation = { status: "failed", name: steps.conversation.name, error: "opening a conversation failed", extra: { error: format(error) } }; await updateSteps("error"); return;
             }
           }
 
           // Send test message
           let message: ChatPostMessageResponse;
-          try { message = await slack.chat.postMessage({ channel: channel.id, text: `<@${auth.user_id}> test:ping` }); steps.postMessage.status = "success"; steps.postMessage.extra = { message }; await updateSteps("progress"); }
-          catch (error) { steps.postMessage.status = "failed"; steps.postMessage.error = "posting message failed"; steps.postMessage.extra = { error: format(error) }; await updateSteps("error"); return; }
+          try { message = await slack.chat.postMessage({ channel: channel.id, text: `<@${auth.user_id}> test:ping` }); steps.postMessage = { status: "success", name: steps.postMessage.name, extra: { message } }; await updateSteps("progress"); }
+          catch (error) { steps.postMessage = { status: "failed", name: steps.postMessage.name, error: "posting message failed", extra: { error: format(error) } }; await updateSteps("error"); return; }
 
           // Wait for bot reply
           const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -206,15 +206,15 @@ export function registerSlackTrigger<Env extends { Variables: { mastra: Mastra }
               const replies = await slack.conversations.replies({ ts: message.ts, channel: channel.id });
               lastReplies = replies;
               if (replies?.messages?.some((m) => m.text === "pong")) {
-                steps.readReplies.status = "success"; steps.readReplies.extra = { replies }; await updateSteps("result"); return;
+                steps.readReplies = { status: "success", name: steps.readReplies.name, extra: { replies } }; await updateSteps("result"); return;
               }
-              steps.readReplies.extra = { replies }; await updateSteps("progress");
+              steps.readReplies = { ...steps.readReplies, extra: { replies } }; await updateSteps("progress");
             } catch (error) {
-              steps.readReplies.status = "failed"; steps.readReplies.error = "replies not found"; steps.readReplies.extra = { error: format(error) }; await updateSteps("error"); return;
+              steps.readReplies = { status: "failed", name: steps.readReplies.name, error: "replies not found", extra: { error: format(error) } }; await updateSteps("error"); return;
             }
           }
 
-          steps.readReplies.status = "failed"; steps.readReplies.error = "replies timed out"; steps.readReplies.extra = { lastReplies }; await updateSteps("error");
+          steps.readReplies = { status: "failed", name: steps.readReplies.name, error: "replies timed out", extra: { lastReplies } }; await updateSteps("error");
         });
       },
     },

@@ -130,9 +130,9 @@ export const textMatchTool = createTool({
     alternatives: z.array(z.string()).describe("Other good matches"),
   }),
 
-  execute: async ({ context, mastra }) => {
-    const logger = mastra?.getLogger();
-    const searchText = context.searchText;
+  execute: async (context) => {
+    const logger = context.mastra?.getLogger();
+    const searchText = context.data.searchText;
     
     logger?.info("🔍 [textMatchTool] Searching for:", { searchText });
     logger?.info("📚 [textMatchTool] Memory has", { lineCount: memoryLines.length });

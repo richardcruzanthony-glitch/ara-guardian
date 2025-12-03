@@ -164,15 +164,15 @@ export const guardianQuoteTool = createTool({
     formatted: z.string(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, mastra }) => {
-    const logger = mastra?.getLogger();
-    logger?.info('💰 [GuardianQuote] Processing quote request:', context.request);
+  execute: async (context) => {
+    const logger = context.mastra?.getLogger();
+    logger?.info('💰 [GuardianQuote] Processing quote request:', context.data.request);
     
     try {
-      const parsed = parseQuoteRequest(context.request);
+      const parsed = parseQuoteRequest(context.data.request);
       
-      if (context.materialOverride) parsed.material = context.materialOverride;
-      if (context.quantityOverride) parsed.quantity = context.quantityOverride;
+      if (context.data.materialOverride) parsed.material = context.data.materialOverride;
+      if (context.data.quantityOverride) parsed.quantity = context.data.quantityOverride;
       
       const material = parseMaterial(parsed.material);
       if (!material) {
@@ -237,8 +237,8 @@ export const listMaterialsTool = createTool({
     })),
     formatted: z.string(),
   }),
-  execute: async ({ mastra }) => {
-    const logger = mastra?.getLogger();
+  execute: async (context) => {
+    const logger = context.mastra?.getLogger();
     logger?.info('📋 [ListMaterials] Listing available materials');
     
     const materials = Object.entries(MATERIALS).map(([code, spec]) => ({

@@ -20,7 +20,8 @@
  * Daily at 8 AM, every 2 hours, every 5 minutes, weekly on Sunday
  */
 
-import { registerCronWorkflow } from "../mastra/inngest";
+import { registerApiRoute } from "@mastra/core";
+// import { registerCronWorkflow } from "../mastra/inngest/index.js"; // Not available
 
 /**
  * Register a cron-based trigger

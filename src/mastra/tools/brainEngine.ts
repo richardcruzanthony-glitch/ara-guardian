@@ -113,7 +113,10 @@ class BrainEngine {
           content = fs.readFileSync(memPath, 'utf-8');
           this.memoryFilePath = memPath;
           if (content.startsWith('ENCRYPTED:')) {
-            content = this.decryptMemory(content.substring(10));
+            // TODO: Implement decryptMemory method
+            // content = this.decryptMemory(content.substring(10));
+            console.log(`[BrainEngine] Warning: Encrypted memory found but decryption not implemented`);
+            content = content.substring(10); // Skip encryption for now
             this.encryptionEnabled = true;
             console.log(`[BrainEngine] Loaded encrypted memory from: ${memPath}`);
           } else {

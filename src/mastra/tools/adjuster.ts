@@ -2,6 +2,7 @@
 // This is the iron logic: Ara learns from every correction — forever
 
 import { z } from "zod";
+import fs from "fs/promises";
 
 export const adjuster = {
   name: "adjust",
@@ -16,8 +17,8 @@ export const adjuster = {
     // Append the rule to her permanent memory file (us-complete.txt)
     const memoryPath = "/opt/render/project/src/us-complete.txt";
     try {
-      const current = await Deno.readTextFile(memoryPath);
-      await Deno.writeTextFile(memoryPath, current + "\n\n" + rule + "\n");
+      const current = await fs.readFile(memoryPath, "utf-8");
+      await fs.writeFile(memoryPath, current + "\n\n" + rule + "\n");
       return `Ara has permanently learned and will never make that mistake again.`;
     } catch {
       return `Ara learned the correction (memory update queued).`;

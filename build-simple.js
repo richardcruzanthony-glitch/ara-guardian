@@ -17,7 +17,7 @@ try {
 
   // Clean and compile TypeScript
   console.log('📦 Compiling TypeScript...');
-  execSync('npx tsc --noCheck', { stdio: 'inherit' });
+  execSync('npx --package=typescript tsc', { stdio: 'inherit' });
   
   // Create entry point
   console.log('📝 Creating entry point...');

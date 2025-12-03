@@ -1,9 +1,10 @@
 import { serve } from "inngest/express";
+import { Inngest } from "inngest";
 
-// basic inngest handler export
+// basic inngest client and handler export
+export const inngest = new Inngest({ id: "ara-guardian" });
+
 export const inngestServe = serve({
-  client: {
-    name: "ara-guardian",
-  },
+  client: inngest,
   functions: [],
 });

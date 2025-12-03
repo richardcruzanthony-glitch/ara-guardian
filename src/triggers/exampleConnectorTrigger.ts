@@ -13,7 +13,7 @@
  * See docs/triggers/webhook_connector_triggers.md for complete guide.
  */
 
-import { registerApiRoute } from "../mastra/inngest";
+import { registerApiRoute } from "@mastra/core";
 import type { Mastra } from "@mastra/core";
 
 /**

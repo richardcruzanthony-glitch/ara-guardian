@@ -92,19 +92,19 @@ export const generateAdTool = createTool({
     sites: z.array(z.string()),
     tips: z.array(z.string()),
   }),
-  execute: async ({ context, mastra }) => {
-    const logger = mastra?.getLogger();
-    logger?.info('📝 [GenerateAd] Creating ad:', context.title);
+  execute: async (context) => {
+    const logger = context.mastra?.getLogger();
+    logger?.info('📝 [GenerateAd] Creating ad:', context.data.title);
     
-    let desc = context.description;
-    if (context.price) {
-      desc += `\n\n💵 Price: $${context.price}`;
+    let desc = context.data.description;
+    if (context.data.price) {
+      desc += `\n\n💵 Price: $${context.data.price}`;
     }
-    if (context.location) {
-      desc += `\n📍 Location: ${context.location}`;
+    if (context.data.location) {
+      desc += `\n📍 Location: ${context.data.location}`;
     }
     
-    const ad = generateAd(context.title, desc, context.template);
+    const ad = generateAd(context.data.title, desc, context.data.template);
     
     const recommendedSites = CLASSIFIED_SITES
       .filter(s => s.postable)
@@ -121,7 +121,7 @@ export const generateAdTool = createTool({
     
     return {
       ad,
-      title: context.title,
+      title: context.data.title,
       sites: recommendedSites,
       tips
     };
@@ -145,13 +145,13 @@ export const listPostSitesTool = createTool({
     formatted: z.string(),
     totalCount: z.number(),
   }),
-  execute: async ({ context, mastra }) => {
-    const logger = mastra?.getLogger();
+  execute: async (context) => {
+    const logger = context.mastra?.getLogger();
     logger?.info('📋 [ListPostSites] Listing sites');
     
     let sites = CLASSIFIED_SITES;
-    if (context.category) {
-      sites = sites.filter(s => s.category === context.category.toLowerCase());
+    if (context.data.category) {
+      sites = sites.filter(s => s.category === context.data.category.toLowerCase());
     }
     
     const formatted = `
@@ -188,17 +188,17 @@ export const autoPostPlanTool = createTool({
     formatted: z.string(),
     automationScore: z.number(),
   }),
-  execute: async ({ context, mastra }) => {
-    const logger = mastra?.getLogger();
+  execute: async (context) => {
+    const logger = context.mastra?.getLogger();
     logger?.info('🚀 [AutoPostPlan] Creating posting plan');
     
     let targetSites = CLASSIFIED_SITES.filter(s => s.postable);
-    if (context.targetSites && context.targetSites.length > 0) {
+    if (context.data.targetSites && context.data.targetSites.length > 0) {
       targetSites = targetSites.filter(s => 
-        context.targetSites!.some(t => s.name.toLowerCase().includes(t.toLowerCase()))
+        context.data.targetSites!.some(t => s.name.toLowerCase().includes(t.toLowerCase()))
       );
     }
-    targetSites = targetSites.slice(0, context.maxSites);
+    targetSites = targetSites.slice(0, context.data.maxSites);
     
     const plan = targetSites.map((site, i) => ({
       step: i + 1,

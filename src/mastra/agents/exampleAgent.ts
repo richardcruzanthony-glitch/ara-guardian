@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
-import { sharedPostgresStorage } from "../storage";
-import { exampleTool } from "../tools/exampleTool";
+// import { sharedPostgresStorage } from "../storage/index.js"; // Not available
+import { exampleTool } from "../tools/exampleTool.js";
 import { createOpenAI } from "@ai-sdk/openai";
 
 /**
@@ -86,15 +86,16 @@ export const exampleAgent = new Agent({
    * Using PostgreSQL for production-ready persistent storage.
    * Only add memory if the user requests it or it's strongly implied (e.g., a chatbot that needs to remember context).  See Mastra docs for more information.
    */
-  memory: new Memory({
-    options: {
-      threads: {
-        generateTitle: true, // Auto-generate conversation titles
-      },
-      lastMessages: 10, // Example: Keep last 10 messages in context
-    },
-    storage: sharedPostgresStorage,
-  }),
+  // DISABLED: sharedPostgresStorage not available
+  // memory: new Memory({
+  //   options: {
+  //     threads: {
+  //       generateTitle: true, // Auto-generate conversation titles
+  //     },
+  //     lastMessages: 10, // Example: Keep last 10 messages in context
+  //   },
+  //   storage: sharedPostgresStorage,
+  // }),
 
   /**
    * Optional: Configure additional settings

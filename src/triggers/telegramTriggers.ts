@@ -1,3 +1,16 @@
+import type { Mastra } from "@mastra/core";
+import { registerApiRoute } from "@mastra/core";
+
+// Type definitions for Telegram triggers
+type TriggerInfoTelegramOnNewMessage = {
+  type: string;
+  params: {
+    userName: string;
+    message: string;
+  };
+  payload: any;
+};
+
 export function registerTelegramTrigger({
   triggerType,
   handler,
