@@ -15,7 +15,12 @@ import { adjuster } from "./tools/adjuster.js";
 import { inngestServe } from "./inngest/index.js";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers.js";
 
-export const mastra = new Mastra({
+type ExtendedMastraConfig = ConstructorParameters<typeof Mastra>[0] & {
+  tools?: unknown[];
+  inngest?: { serve: typeof inngestServe };
+};
+
+const mastraConfig: ExtendedMastraConfig = {
   telemetry: { enabled: false },
   tools: [
     brainEngine,
@@ -39,11 +44,10 @@ export const mastra = new Mastra({
       tools: {},
     }),
   },
-});
+export const mastra = new Mastra(mastraConfig);
 
 // TELEGRAM IS BACK — FULLY COMPATIBLE
 registerTelegramTrigger(mastra);
-
 // ONLY ONE AGENT — KEEPS IT CLEAN
 if (Object.keys(mastra.getAgents()).length > 1)
   throw new Error("Only 1 agent allowed");
