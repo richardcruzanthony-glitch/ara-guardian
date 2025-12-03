@@ -5,8 +5,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "mastra dev",
-    "build": "bash scripts/build.sh",
-    "start": "node .mastra/output/index.js",
+    "build": "npx mastra build",
+    "start": "node --import=./.mastra/output/instrumentation.mjs .mastra/output/index.mjs",
     "check": "tsc",
     "check:format": "prettier --check '**/*.ts'",
     "format": "prettier --write '**/*.ts'"
