@@ -5,9 +5,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "mastra dev",
-    "build": "npm run build:tsc",
-    "build:tsc": "tsc --outDir .mastra/output && node setup-output.js",
-    "start": "node .mastra/output/index.mjs",
+    "build": "node build-simple.js",
+    "start": "node dist/index.js",
     "check": "tsc",
     "check:format": "prettier --check '**/*.ts'",
     "format": "prettier --write '**/*.ts'"
