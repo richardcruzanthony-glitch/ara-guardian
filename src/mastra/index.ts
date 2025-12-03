@@ -44,6 +44,8 @@ const mastraConfig: ExtendedMastraConfig = {
       tools: {},
     }),
   },
+};
+
 export const mastra = new Mastra(mastraConfig);
 
 // TELEGRAM IS BACK — FULLY COMPATIBLE
