@@ -103914,42 +103914,6 @@ const inngestServe = serve({
   functions: []
 });
 
-function registerTelegramTrigger({
-  triggerType,
-  handler
-}) {
-  return [
-    registerApiRoute("/webhooks/telegram/action", {
-      method: "POST",
-      handler: async (c) => {
-        const mastra = c.get("mastra");
-        const logger = mastra.getLogger();
-        try {
-          const payload = await c.req.json();
-          logger?.info("\u{1F4DD} [Telegram] payload", payload);
-          const message = payload.message || payload.edited_message;
-          if (!message || !message.text) {
-            logger?.info("\u{1F4DD} [Telegram] Ignoring non-text message");
-            return c.text("OK", 200);
-          }
-          await handler(mastra, {
-            type: triggerType,
-            params: {
-              userName: message.from?.username || message.from?.first_name || "unknown",
-              message: message.text
-            },
-            payload
-          });
-          return c.text("OK", 200);
-        } catch (error) {
-          logger?.error("Error handling Telegram webhook:", error);
-          return c.text("Internal Server Error", 500);
-        }
-      }
-    })
-  ];
-}
-
 process.env.MASTRA_TELEMETRY_ENABLED = "false";
 const mastra = new Mastra({
   telemetry: {
@@ -103971,7 +103935,13 @@ const mastra = new Mastra({
     })
   }
 });
-registerTelegramTrigger(mastra);
+mastra.server.app.post("/telegram/webhook", (req, res) => {
+  const body = req.body;
+  console.log("Telegram message:", body);
+  res.json({
+    ok: true
+  });
+});
 if (Object.keys(mastra.getAgents()).length > 1) {
   throw new Error("Only 1 agent");
 }
