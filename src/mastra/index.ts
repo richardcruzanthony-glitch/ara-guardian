@@ -37,7 +37,7 @@ export const mastra = new Mastra({
   },
 });
 
-registerTelegramTrigger(mastra);
+mastra.server.app.post('/telegram/webhook', (req, res) => { const body = req.body; console.log('Telegram message:', body); res.json({ok: true}); });
 import "../triggers/proactive";
 
 if (Object.keys(mastra.getAgents()).length > 1) {
