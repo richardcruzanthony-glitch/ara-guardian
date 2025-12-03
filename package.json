@@ -7,6 +7,7 @@
     "dev": "mastra dev",
     "build": "node build-simple.js",
     "start": "node dist/index.js",
+    "postinstall": "npm run build",
     "check": "tsc",
     "check:format": "prettier --check '**/*.ts'",
     "format": "prettier --write '**/*.ts'"
