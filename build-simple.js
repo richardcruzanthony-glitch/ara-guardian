@@ -21,7 +21,7 @@ try {
   
   // Create entry point
   console.log('📝 Creating entry point...');
-  const entryPoint = `import { mastra } from './src/mastra/index.js';
+  const entryPoint = `import { mastra } from './mastra/index.js';
 
 console.log('🚀 Starting Mastra server...');
 const port = process.env.PORT || 5000;
