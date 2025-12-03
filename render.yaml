@@ -1,0 +1,26 @@
+# Render Blueprint for Ara Guardian
+# See https://render.com/docs/blueprint-spec for documentation
+
+services:
+  - type: web
+    name: ara-guardian
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    healthCheckTimeout: 30
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: MASTRA_TELEMETRY_ENABLED
+        value: false
+      # Secrets - set these manually in the Render Dashboard
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: BOT_TOKEN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
