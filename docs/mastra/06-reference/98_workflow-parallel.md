@@ -1,0 +1,46 @@
+---
+title: "Reference: Workflow.parallel() | Workflows | Mastra Docs"
+description: Documentation for the `Workflow.parallel()` method in workflows, which executes multiple steps in parallel.
+---
+
+# Workflow.parallel()
+[EN] Source: https://mastra.ai/en/reference/workflows/workflow-methods/parallel
+
+The `.parallel()` method executes multiple steps in parallel.
+
+## Usage example
+
+```typescript copy
+workflow.parallel([step1, step2]);
+```
+
+## Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: "steps",
+      type: "Step[]",
+      description: "The step instances to execute in parallel",
+      isOptional: false,
+    },
+  ]}
+/>
+
+## Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: "workflow",
+      type: "Workflow",
+      description: "The workflow instance for method chaining",
+    },
+  ]}
+/>
+
+## Related
+
+- [Parallel Workflow Example](../../../examples/workflows/parallel-steps.mdx)
+
+

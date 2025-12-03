@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: ara-3
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: node .mastra/output/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_OPTIONS
+        value: --max-old-space-size=4096

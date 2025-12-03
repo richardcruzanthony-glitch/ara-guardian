@@ -1,0 +1,81 @@
+modules = ["nodejs-22"]
+
+[agent]
+stack = "AGENT_STACK"
+integrations = ["javascript_openai_ai_integrations:1.0.0", "agentstack-trigger-telegram:1.0.0"]
+
+[nix]
+channel = "stable-24_11"
+packages = ["jq", "chromium", "glib", "nss", "nspr", "at-spi2-atk", "cups", "libdrm", "expat", "xorg.libxcb", "xorg.libX11", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXext", "xorg.libXfixes", "xorg.libXrandr", "mesa", "alsa-lib", "pango", "cairo", "gtk3"]
+
+[env]
+MASTRA_HIDE_CLOUD_CTA = "true"
+
+[deployment]
+build = ["bash", "scripts/build.sh"]
+run = ["sh", "-c", "cd .mastra/output && NODE_ENV=production node index.mjs"]
+deploymentTarget = "cloudrun"
+
+[[ports]]
+localPort = 3000
+externalPort = 3000
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 8289
+
+[[ports]]
+localPort = 50052
+externalPort = 3002
+
+[[ports]]
+localPort = 50053
+externalPort = 3001
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start inngest server"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "mastra dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "automations"
+
+[[workflows.workflow]]
+name = "Start inngest server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "./scripts/inngest.sh"
+waitForPort = 3000
+
+[workflows.workflow.metadata]
+outputType = "automations"
+
+[userenv]
+
+[userenv.shared]
+NODE_OPTIONS = "--max-old-space-size=4096"
