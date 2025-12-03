@@ -1,4 +1,3 @@
-// KILL TELEMETRY FOREVER — THIS LINE MUST BE FIRST
 process.env.MASTRA_TELEMETRY_ENABLED = "false";
 
 import { Mastra } from "@mastra/core";
@@ -14,7 +13,13 @@ import { registerTelegramTrigger } from "../triggers/telegramTriggers";
 export const mastra = new Mastra({
   telemetry: { enabled: false },
 
-  tools: [brainEngine, generateQuote, getMaterialsList, grokReasoning, gpt4o],
+  tools: [
+    brainEngine,
+    generateQuote,
+    getMaterialsList,
+    grokReasoning,
+    gpt4o,
+  ],
 
   server: {
     host: "0.0.0.0",
@@ -24,13 +29,19 @@ export const mastra = new Mastra({
   inngest: { serve: inngestServe },
 
   mcpServers: {
-    allTools: new MCPServer({ name: "allTools", version: "1.0.0", tools: {} }),
+    allTools: new MCPServer({
+      name: "allTools",
+      version: "1.0.0",
+      tools: {},
+    }),
   },
 });
 
 registerTelegramTrigger(mastra);
+import "../triggers/proactive";
 
-if (Object.keys(mastra.getAgents()).length > 1) throw new Error("Only 1 agent");
+if (Object.keys(mastra.getAgents()).length > 1) {
+  throw new Error("Only 1 agent");
+}
 
 export default mastra;
-import "../triggers/proactive";

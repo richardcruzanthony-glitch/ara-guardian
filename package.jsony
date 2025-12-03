@@ -1,0 +1,21 @@
+"dependencies": {
+  "@mastra/core": "0.13.5",
+  "@mastra/mcp": "0.13.5",
+  "mastra": "0.13.5"
+}
+
+{
+  "name": "ara-guardian",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "mastra dev",
+    "build": "npx mastra build",
+    "start": "node --import=./.mastra/output/instrumentation.mjs .mastra/output/index.mjs"
+  },
+  "dependencies": {
+    "@mastra/core": "0.13.5",
+    "@mastra/mcp": "0.13.5",
+    "@mastra/cli": "0.13.5"
+  }
+}

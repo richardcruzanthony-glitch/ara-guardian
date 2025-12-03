@@ -1,7 +1,10 @@
+nano package.json
+
 {
-  "name": "agent-stack-mastra",
+  "name": "ara-guardian",
   "version": "1.0.0",
-  "lockfileVersion": 3,
+
+ "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
@@ -215,8 +218,6 @@
     },
     "node_modules/@ai-sdk/openai-compatible": {
       "version": "1.0.19",
-      "resolved": "https://registry.npmjs.org/@ai-sdk/openai-compatible/-/openai-compatible-1.0.19.tgz",
-      "integrity": "sha512-hnsqPCCSNKgpZRNDOAIXZs7OcUDM4ut5ggWxj2sjB4tNL/aBn/xrM7pJkqu+WuPowyrE60wPVSlw0LvtXAlMXQ==",
       "license": "Apache-2.0",
       "dependencies": {
         "@ai-sdk/provider": "2.0.0",
@@ -12489,4 +12490,5 @@
       }
     }
   }
-}
+}=-
+
