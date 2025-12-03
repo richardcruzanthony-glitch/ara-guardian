@@ -1,0 +1,18 @@
+export { S as gpt4o } from '../mastra.mjs';
+import 'stream/web';
+import 'crypto';
+import 'node:url';
+import 'node:path';
+import 'node:module';
+import 'events';
+import 'node:crypto';
+import 'path';
+import 'util';
+import 'buffer';
+import 'string_decoder';
+import 'stream';
+import 'async_hooks';
+import 'node:process';
+import 'fs';
+import 'os';
+import 'tty';
