@@ -20,7 +20,8 @@
  * Daily at 8 AM, every 2 hours, every 5 minutes, weekly on Sunday
  */
 
-import { registerApiRoute } from "@mastra/core";
+// DISABLED: registerApiRoute not available in Mastra v0.20+
+// import { registerApiRoute } from "@mastra/core";
 // import { registerCronWorkflow } from "../mastra/inngest/index.js"; // Not available
 
 /**
@@ -53,8 +54,9 @@ export function registerCronTrigger({
   cronExpression: string;
   workflow: any;
 }) {
-  // Delegate to the helper in inngest/index.ts which manages inngestFunctions
-  registerCronWorkflow(cronExpression, workflow);
+  // DISABLED: registerCronWorkflow not available
+  console.warn("Cron trigger registration skipped - API not compatible with Mastra v0.20+");
+  // registerCronWorkflow(cronExpression, workflow);
 
   // Returns empty array for consistency with trigger file conventions
   // Note: Do NOT spread this into apiRoutes - cron triggers don't create HTTP routes

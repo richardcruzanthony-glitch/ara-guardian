@@ -1,5 +1,6 @@
 import type { Mastra } from "@mastra/core";
-import { registerApiRoute } from "@mastra/core";
+// DISABLED: registerApiRoute not available in Mastra v0.20+
+// import { registerApiRoute } from "@mastra/core";
 
 // Type definitions for Telegram triggers
 type TriggerInfoTelegramOnNewMessage = {
@@ -21,6 +22,11 @@ export function registerTelegramTrigger({
     triggerInfo: TriggerInfoTelegramOnNewMessage,
   ) => Promise<void>;
 }) {
+  // DISABLED: registerApiRoute not available
+  console.warn("Telegram trigger registration skipped - API not compatible with Mastra v0.20+");
+  return [];
+  
+  /* Original implementation - requires registerApiRoute:
   return [
     registerApiRoute("/webhooks/telegram/action", {
       method: "POST",
@@ -55,4 +61,5 @@ export function registerTelegramTrigger({
       },
     }),
   ];
+  */
 }

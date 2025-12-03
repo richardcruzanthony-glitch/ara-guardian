@@ -13,7 +13,8 @@
  * See docs/triggers/webhook_connector_triggers.md for complete guide.
  */
 
-import { registerApiRoute } from "@mastra/core";
+// DISABLED: registerApiRoute not available in Mastra v0.20+
+// import { registerApiRoute } from "@mastra/core";
 import type { Mastra } from "@mastra/core";
 
 /**
@@ -81,6 +82,11 @@ export function registerLinearTrigger({
   triggerType: "linear/issue.created";
   handler: LinearTriggerHandler;
 }) {
+  // DISABLED: registerApiRoute not available
+  console.warn("Linear trigger registration skipped - API not compatible with Mastra v0.20+");
+  return [];
+  
+  /* Original implementation:
   return [
     registerApiRoute("/linear/webhook", {
       method: "POST",
@@ -137,4 +143,5 @@ export function registerLinearTrigger({
       },
     }),
   ];
+  */
 }

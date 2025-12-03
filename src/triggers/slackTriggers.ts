@@ -21,7 +21,8 @@ import {
 import type { Context, Handler, MiddlewareHandler } from "hono";
 import { streamSSE } from "hono/streaming";
 import type { z } from "zod";
-import { registerApiRoute } from "@mastra/core";
+// DISABLED: registerApiRoute not available in Mastra v0.20+
+// import { registerApiRoute } from "@mastra/core";
 
 export type Methods = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "ALL";
 
@@ -112,6 +113,11 @@ function createReactToMessage<TState extends z.ZodObject<any>, TInput extends z.
 export function registerSlackTrigger<Env extends { Variables: { mastra: Mastra } }, TState extends z.ZodObject<any>, TInput extends z.ZodType<any>, TOutput extends z.ZodType<any>, TSteps extends Step<string, any, any>[]>(
   { triggerType, handler }: { triggerType: string; handler: (mastra: Mastra, triggerInfo: TriggerInfoSlackOnNewMessage) => Promise<WorkflowResult<TState, TInput, TOutput, TSteps> | null> }
 ): Array<ApiRoute> {
+  // DISABLED: registerApiRoute not available
+  console.warn("Slack trigger registration skipped - API not compatible with Mastra v0.20+");
+  return [];
+  
+  /* Original implementation:
   return [
     registerApiRoute("/webhooks/slack/action", {
       method: "POST",
@@ -219,4 +225,5 @@ export function registerSlackTrigger<Env extends { Variables: { mastra: Mastra }
       },
     },
   ];
+  */
 }

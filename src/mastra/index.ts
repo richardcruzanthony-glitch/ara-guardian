@@ -12,7 +12,7 @@ import { scraper } from "./tools/scraper.js";               // ← real-time web
 import { skillInstaller } from "./tools/skillInstaller.js"; // ← infinite growth
 import { adjuster } from "./tools/adjuster.js";             // ← never wrong twice
 import { inngestServe } from "./inngest/index.js";
-import { registerTelegramTrigger } from "../triggers/telegramTriggers.js";
+// import { registerTelegramTrigger } from "../triggers/telegramTriggers.js";
 
 export const mastra = new Mastra({
   telemetry: { enabled: false },
@@ -25,7 +25,8 @@ export const mastra = new Mastra({
   },
 });
 
-registerTelegramTrigger(mastra);
+// DISABLED: Trigger API not compatible with Mastra v0.20+
+// registerTelegramTrigger(mastra);
 
 if (Object.keys(mastra.getAgents()).length > 1) 
   throw new Error("Only 1 agent");
