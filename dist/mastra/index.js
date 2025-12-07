@@ -1,5 +1,7 @@
 // IRON MODE — TELEMETRY DEAD FOREVER
 process.env.MASTRA_TELEMETRY_ENABLED = "false";
+import { Mastra } from "@mastra/core";
+import { MCPServer } from "@mastra/mcp";
 import { brainEngine } from "./tools/brainEngine.js";
 import { generateQuote, getMaterialsList } from "./tools/guardianPricing.js";
 import { grokReasoning } from "./tools/grokReasoning.js";
@@ -7,6 +9,8 @@ import { gpt4o } from "./tools/gpt4o.js";
 import { scraper } from "./tools/scraper.js";
 import { skillInstaller } from "./tools/skillInstaller.js";
 import { adjuster } from "./tools/adjuster.js";
+import { inngestServe } from "./inngest/index.js";
+import { registerTelegramTrigger } from "../triggers/telegramTriggers.js";
 import { registerApiRoute } from "@mastra/core/server";
 // Secret API key
 const AI_API_KEY = process.env.AI_API_KEY || "supersecretkey";
@@ -104,62 +108,49 @@ const mastraConfig = {
                 middleware: [
                     async (c, next) => {
                         const token = c.req.header("Authorization");
-                        if (!token || token !== )
-                            ;
-                        `Bearer \${AI_API_KEY}\`) {
-              return c.json({ error: "Unauthorized" }, 401);
-            }
-            await next();
-          },
+                        if (!token || token !== `Bearer ${AI_API_KEY}`) {
+                            return c.json({ error: "Unauthorized" }, 401);
+                        }
+                        await next();
+                    },
+                ],
+                handler: async (c) => {
+                    const { message } = await c.req.json();
+                    if (!message)
+                        return c.json({ error: "No message provided" }, 400);
+                    const agents = mastra.getAgents();
+                    const agentNames = Object.keys(agents);
+                    if (agentNames.length === 0)
+                        return c.json({ error: "No agent found" }, 500);
+                    const agent = agents[agentNames[0]];
+                    let reply;
+                    try {
+                        reply = await agent.run(message);
+                    }
+                    catch (e) {
+                        console.error('Agent run failed:', e);
+                        reply = "ARA could not process your message";
+                    }
+                    return c.json({ reply });
+                },
+            }),
         ],
-        handler: async (c) => {
-          const { message } = await c.req.json();
-          if (!message) return c.json({ error: "No message provided" }, 400);
-
-          const agents = mastra.getAgents();
-          const agentNames = Object.keys(agents);
-          if (agentNames.length === 0) return c.json({ error: "No agent found" }, 500);
-
-          const agent = agents[agentNames[0]] as any;
-          let reply: string;
-          try {
-            reply = await agent.run(message);
-          } catch (e) {
-            console.error('Agent run failed:', e);
-            reply = "ARA could not process your message";
-          }
-
-          return c.json({ reply });
-        },
-      }),
-    ],
-  },
-  inngest: { serve: inngestServe },
-  mcpServers: {
-    allTools: new MCPServer({ name: "allTools", version: "1.0.0", tools: {} }),
-  },
+    },
+    inngest: { serve: inngestServe },
+    mcpServers: {
+        allTools: new MCPServer({ name: "allTools", version: "1.0.0", tools: {} }),
+    },
 };
-
 export const mastra = new Mastra(mastraConfig);
-
 // Telegram integration
 try {
-  registerTelegramTrigger(mastra);
-} catch (e) {
-  console.warn("Telegram trigger failed:", e);
+    registerTelegramTrigger(mastra);
 }
-
+catch (e) {
+    console.warn("Telegram trigger failed:", e);
+}
 // Enforce single agent
 if (Object.keys(mastra.getAgents()).length > 1) {
-  throw new Error("Only 1 agent allowed");
+    throw new Error("Only 1 agent allowed");
 }
-
 export default mastra;
-
-                        ;
-                    }
-                ]
-            })
-        ]
-    }
-};
