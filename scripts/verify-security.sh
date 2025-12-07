@@ -31,7 +31,8 @@ echo ""
 
 # Test 3: Check credentials: 'include' is present
 echo "Test 3: Checking for session-based authentication (credentials: 'include')..."
-if grep -q "credentials.*include" public/app.js && grep -q "credentials.*include" src/mastra/index.ts; then
+if grep -E "credentials.*include" public/app.js >/dev/null 2>&1 && \
+   grep -E "credentials.*include" src/mastra/index.ts >/dev/null 2>&1; then
   echo "✅ PASSED: Session-based authentication configured"
 else
   echo "❌ FAILED: Session-based authentication not properly configured"

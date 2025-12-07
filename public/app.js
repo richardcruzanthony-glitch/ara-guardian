@@ -78,7 +78,13 @@ const sendChat = async ({ message, files }) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      const contentType = response.headers.get('content-type');
+      let errorData;
+      if (contentType && contentType.includes('application/json')) {
+        errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      } else {
+        errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
+      }
       throw new Error(errorData.error || `HTTP ${response.status}`);
     }
     const data = await response.json();

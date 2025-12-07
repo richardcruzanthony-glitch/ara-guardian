@@ -132,13 +132,30 @@ const mastraConfig: ExtendedMastraConfig = {
       }),
 
       // Chat endpoint for your custom AI assistant
+      // NOTE: This endpoint is for development/internal use only
+      // For production with authentication, use the Express server at server/index.js
       registerApiRoute("/chat", {
         method: "POST",
         middleware: [
           async (c, next) => {
-            // In production, verify session exists
-            // For now, we'll add a note that session handling should be implemented
-            // This is a placeholder - proper session middleware should be added
+            // Simple API key check for the Mastra built-in endpoint
+            // This is NOT session-based - for full security use server/index.js
+            const apiKey = AI_API_KEY;
+            
+            // If no API key is configured, endpoint is disabled
+            if (!apiKey) {
+              return c.json({ error: "Endpoint not configured. Use server/index.js for authenticated access." }, 503);
+            }
+            
+            // For development: allow requests from localhost without auth
+            // For production: require API key in header or use Express server
+            const devMode = process.env.NODE_ENV !== 'production';
+            const hasValidAuth = c.req.headers.get("X-API-Key") === apiKey;
+            
+            if (!devMode && !hasValidAuth) {
+              return c.json({ error: "Unauthorized. Use /login endpoint on Express server." }, 401);
+            }
+            
             await next();
           },
         ],

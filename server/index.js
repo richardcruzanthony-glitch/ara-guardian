@@ -29,7 +29,10 @@ app.use(express.urlencoded({ extended: true }));
 
 // Session configuration
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'change-this-secret-in-production',
+  secret: process.env.SESSION_SECRET || 
+    (process.env.NODE_ENV === 'production' 
+      ? (() => { throw new Error('SESSION_SECRET is required in production'); })() 
+      : 'dev-session-secret-change-in-production'),
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -51,12 +54,27 @@ app.use('/api/', limiter);
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Demo login endpoint (for development/testing)
+// Demo login endpoint (for development/testing only)
+// Disabled in production for security
 app.post('/login', (req, res) => {
+  if (process.env.NODE_ENV === 'production' && !process.env.DEMO_PASSWORD) {
+    return res.status(403).json({ 
+      success: false, 
+      message: 'Demo login is disabled in production. Use proper authentication.' 
+    });
+  }
+  
   const { password } = req.body;
   
   // In production, use proper authentication
-  const demoPassword = process.env.DEMO_PASSWORD || 'demo123';
+  const demoPassword = process.env.DEMO_PASSWORD;
+  
+  if (!demoPassword) {
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Authentication not configured' 
+    });
+  }
   
   if (password === demoPassword) {
     req.session.authenticated = true;
