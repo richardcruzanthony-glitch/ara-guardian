@@ -9,10 +9,15 @@ import { gpt4o } from "./tools/gpt4o.js";
 import { scraper } from "./tools/scraper.js";
 import { skillInstaller } from "./tools/skillInstaller.js";
 import { adjuster } from "./tools/adjuster.js";
+import { exampleAgent } from "./agents/exampleAgent.js";
 import { inngestServe } from "./inngest/index.js";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers.js";
+import { registerApiRoute } from "@mastra/core/server";
+// Secret API key
+const AI_API_KEY = process.env.AI_API_KEY || "supersecretkey";
 const mastraConfig = {
     telemetry: { enabled: false },
+    agents: { exampleAgent },
     tools: [
         brainEngine,
         generateQuote,
@@ -26,20 +31,156 @@ const mastraConfig = {
     server: {
         host: "0.0.0.0",
         port: Number(process.env.PORT) || 5000,
+        apiRoutes: [
+            // HTML Chat Frontend
+            registerApiRoute("/", {
+                method: "GET",
+                handler: async (c) => {
+                    return c.html(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ARA Guardian Chat</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f5f5; text-align: center; padding: 50px; }
+    h1 { color: #333; }
+    .chat-box { background: #fff; padding: 20px; border-radius: 10px; width: 400px; margin: 0 auto; }
+    .messages { height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; text-align: left; }
+    .message { margin: 5px 0; }
+    .message.user { color: blue; }
+    .message.ara { color: green; }
+    input[type="text"] { width: 70%; padding: 8px; }
+    button { padding: 8px 12px; }
+  </style>
+</head>
+<body>
+  <h1>ARA Guardian Chat</h1>
+  <div class="chat-box">
+    <div id="messages" class="messages"></div>
+    <input id="userInput" type="text" placeholder="Type your message..." />
+    <button id="sendBtn">Send</button>
+  </div>
+  <script>
+    const messagesDiv = document.getElementById('messages');
+    const input = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    function appendMessage(sender, text) {
+      const div = document.createElement('div');
+      div.className = 'message ' + sender;
+      div.textContent = sender === 'user' ? 'You: ' + text : 'ARA: ' + text;
+      messagesDiv.appendChild(div);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const text = input.value.trim();
+      if (!text) return;
+      appendMessage('user', text);
+      input.value = '';
+      try {
+        const res = await fetch('/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${AI_API_KEY}'
+          },
+          body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+        appendMessage('ara', data.reply || 'No response');
+      } catch (err) {
+        appendMessage('ara', 'Error contacting server');
+      }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
+  </script>
+</body>
+</html>
+          `);
+                },
+            }),
+            // Chat Endpoint
+            registerApiRoute("/chat", {
+                method: "POST",
+                middleware: [
+                    async (c, next) => {
+                        const token = c.req.header("Authorization");
+                        if (!token || token !== `Bearer ${AI_API_KEY}`) {
+                            return c.json({ error: "Unauthorized" }, 401);
+                        }
+                        await next();
+                    },
+                ],
+                handler: async (c) => {
+                    try {
+                        // Log incoming request
+                        console.log('[POST /chat] Request received');
+                        const { message } = await c.req.json();
+                        console.log('[POST /chat] Message:', message?.substring(0, 100));
+                        if (!message) {
+                            console.warn('[POST /chat] Missing message in request body');
+                            return c.json({ error: "No message provided" }, 400);
+                        }
+                        const agents = mastra.getAgents();
+                        const agentNames = Object.keys(agents);
+                        if (agentNames.length === 0) {
+                            console.error('[POST /chat] No agents available');
+                            return c.json({ error: "No agent found" }, 500);
+                        }
+                        const agent = agents[agentNames[0]];
+                        console.log('[POST /chat] Using agent:', agentNames[0]);
+                        let reply;
+                        try {
+                            // Use generate() instead of run() for Mastra v0.20+
+                            const response = await agent.generate({
+                                messages: [{ role: "user", content: message }]
+                            });
+                            reply = response.text || "No response";
+                            console.log('[POST /chat] Agent response generated successfully');
+                        }
+                        catch (e) {
+                            console.error('[POST /chat] Agent generation failed:', {
+                                error: e.message,
+                                stack: process.env.NODE_ENV !== 'production' ? e.stack : undefined
+                            });
+                            reply = "ARA could not process your message";
+                        }
+                        return c.json({ reply });
+                    }
+                    catch (error) {
+                        console.error('[POST /chat] Unhandled error:', {
+                            error: error.message,
+                            stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+                        });
+                        return c.json({
+                            error: "Internal server error",
+                            details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+                        }, 500);
+                    }
+                },
+            }),
+        ],
     },
     inngest: { serve: inngestServe },
     mcpServers: {
-        allTools: new MCPServer({
-            name: "allTools",
-            version: "1.0.0",
-            tools: {},
-        }),
+        allTools: new MCPServer({ name: "allTools", version: "1.0.0", tools: {} }),
     },
 };
 export const mastra = new Mastra(mastraConfig);
-// TELEGRAM IS BACK — FULLY COMPATIBLE
-registerTelegramTrigger(mastra);
-// ONLY ONE AGENT — KEEPS IT CLEAN
-if (Object.keys(mastra.getAgents()).length > 1)
+// Telegram integration
+try {
+    registerTelegramTrigger(mastra);
+}
+catch (e) {
+    console.warn("Telegram trigger failed:", e);
+}
+// Enforce single agent
+if (Object.keys(mastra.getAgents()).length > 1) {
     throw new Error("Only 1 agent allowed");
+}
 export default mastra;

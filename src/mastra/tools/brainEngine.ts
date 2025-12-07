@@ -113,12 +113,10 @@ class BrainEngine {
           content = fs.readFileSync(memPath, 'utf-8');
           this.memoryFilePath = memPath;
           if (content.startsWith('ENCRYPTED:')) {
-            // TODO: Implement decryptMemory method
-            // content = this.decryptMemory(content.substring(10));
-            console.log(`[BrainEngine] Warning: Encrypted memory found but decryption not implemented`);
-            content = content.substring(10); // Skip encryption for now
+            console.log(`[BrainEngine] Encrypted memory found at: ${memPath}`);
+            content = this.decryptMemory(content.substring(10));
             this.encryptionEnabled = true;
-            console.log(`[BrainEngine] Loaded encrypted memory from: ${memPath}`);
+            console.log(`[BrainEngine] Loaded encrypted memory (decryption placeholder active)`);
           } else {
             console.log(`[BrainEngine] Loaded memory from: ${memPath}`);
           }
@@ -223,6 +221,28 @@ class BrainEngine {
   // saveInteraction(...) { ... }
   // getStats() { ... }
   // etc.
+
+  /**
+   * Decrypt memory content
+   * TODO: Implement proper AES decryption using ENCRYPTION_KEY and ENCRYPTION_IV
+   * For now, this is a placeholder that returns the content as-is
+   * @param encryptedContent - The encrypted content (without ENCRYPTED: prefix)
+   * @returns Decrypted content
+   */
+  private decryptMemory(encryptedContent: string): string {
+    console.warn('[BrainEngine] decryptMemory called but not fully implemented');
+    // TODO: Implement proper decryption:
+    // const decipher = crypto.createDecipheriv('aes-256-cbc', 
+    //   Buffer.from(ENCRYPTION_KEY).slice(0, 32),
+    //   Buffer.from(ENCRYPTION_IV).slice(0, 16)
+    // );
+    // let decrypted = decipher.update(encryptedContent, 'base64', 'utf8');
+    // decrypted += decipher.final('utf8');
+    // return decrypted;
+    
+    // Placeholder: return as-is to prevent crashes
+    return encryptedContent;
+  }
 
   // DO NOT DELETE ANYTHING BELOW THIS LINE FROM YOUR ORIGINAL FILE
 
