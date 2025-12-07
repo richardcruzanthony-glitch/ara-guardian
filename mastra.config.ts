@@ -21,6 +21,9 @@ type ExtendedMastraConfig = ConstructorParameters<typeof Mastra>[0] & {
   inngest?: { serve: typeof inngestServe };
 };
 
+// Replace this with your secret API key for your assistant
+const AI_API_KEY = process.env.AI_API_KEY || "supersecretkey";
+
 const mastraConfig: ExtendedMastraConfig = {
   telemetry: { enabled: false },
   tools: [
@@ -72,11 +75,35 @@ const mastraConfig: ExtendedMastraConfig = {
         },
       }),
 
-      // Example custom JSON route
+      // Example JSON route for testing
       registerApiRoute("/my-custom-route", {
         method: "GET",
         handler: async (c) => {
           return c.json({ message: "Hello from my custom route!" });
+        },
+      }),
+
+      // Chat endpoint for your custom AI assistant
+      registerApiRoute("/chat", {
+        method: "POST",
+        middleware: [
+          async (c, next) => {
+            const token = c.req.headers.get("Authorization");
+            if (!token || token !== `Bearer ${AI_API_KEY}`) {
+              return c.json({ error: "Unauthorized" }, 401);
+            }
+            await next();
+          },
+        ],
+        handler: async (c) => {
+          const { message } = await c.req.json();
+          if (!message) return c.json({ error: "No message provided" }, 400);
+
+          const agent = mastra.getAgents()["default"];
+          if (!agent) return c.json({ error: "No agent found" }, 500);
+
+          const reply = await agent.run(message);
+          return c.json({ reply });
         },
       }),
     ],
