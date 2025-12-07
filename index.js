@@ -1,4 +1,3 @@
-// Render still launches `node index.js`, so forward to the compiled output.
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { existsSync } from "node:fs";
