@@ -17,6 +17,7 @@
  */
 
 const API_URL = process.env.API_URL || "http://localhost:5000";
+// Use env var or default test key (matches default in src/mastra/index.ts)
 const API_KEY = process.env.AI_API_KEY || "supersecretkey";
 
 async function testChatEndpoint() {
