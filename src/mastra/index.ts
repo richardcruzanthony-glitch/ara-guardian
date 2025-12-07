@@ -3,6 +3,7 @@ process.env.MASTRA_TELEMETRY_ENABLED = "false";
 
 import { Mastra } from "@mastra/core";
 import { MCPServer } from "@mastra/mcp";
+import { registerApiRoute } from "@mastra/core/server";
 
 import { brainEngine } from "./tools/brainEngine.js";
 import { generateQuote, getMaterialsList } from "./tools/guardianPricing.js";
@@ -14,7 +15,6 @@ import { adjuster } from "./tools/adjuster.js";
 
 import { inngestServe } from "./inngest/index.js";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers.js";
-import { registerApiRoute } from "@mastra/core/server";
 
 // Secret API key for secure chat
 const AI_API_KEY = process.env.AI_API_KEY || "supersecretkey";
