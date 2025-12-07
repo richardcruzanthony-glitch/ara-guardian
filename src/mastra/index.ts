@@ -11,6 +11,7 @@ import { gpt4o } from "./tools/gpt4o.js";
 import { scraper } from "./tools/scraper.js";
 import { skillInstaller } from "./tools/skillInstaller.js";
 import { adjuster } from "./tools/adjuster.js";
+import { exampleAgent } from "./agents/exampleAgent.js";
 
 import { inngestServe } from "./inngest/index.js";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers.js";
@@ -26,6 +27,7 @@ const AI_API_KEY = process.env.AI_API_KEY || "supersecretkey";
 
 const mastraConfig: ExtendedMastraConfig = {
   telemetry: { enabled: false },
+  agents: { exampleAgent },
   tools: [
     brainEngine,
     generateQuote,
@@ -119,7 +121,7 @@ const mastraConfig: ExtendedMastraConfig = {
         middleware: [
           async (c, next) => {
             const token = c.req.header("Authorization");
-            if (!token || token !== \`Bearer \${AI_API_KEY}\`) {
+            if (!token || token !== `Bearer ${AI_API_KEY}`) {
               return c.json({ error: "Unauthorized" }, 401);
             }
             await next();
@@ -136,9 +138,10 @@ const mastraConfig: ExtendedMastraConfig = {
           const agent = agents[agentNames[0]] as any;
           let reply: string;
           try {
-            reply = await agent.run(message);
+            const response = await agent.generateLegacy(message);
+            reply = response.text || "No response generated";
           } catch (e) {
-            console.error('Agent run failed:', e);
+            console.error('Agent generate failed:', e);
             reply = "ARA could not process your message";
           }
 
