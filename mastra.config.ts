@@ -147,8 +147,14 @@ const mastraConfig: ExtendedMastraConfig = {
           const agent = mastra.getAgents()["araGuardianAgent"];
           if (!agent) return c.json({ error: "No agent found" }, 500);
 
-          const reply = await agent.run(message);
-          return c.json({ reply });
+          try {
+            const response = await agent.generateLegacy(message);
+            const reply = response.text || "ARA did not return a response";
+            return c.json({ reply });
+          } catch (e) {
+            console.error('Agent generate failed:', e);
+            return c.json({ reply: "ARA could not process your message" });
+          }
         },
       }),
     ],
