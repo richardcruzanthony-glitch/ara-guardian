@@ -7,10 +7,12 @@
     "dev": "mastra dev",
     "build": "node build-simple.js",
     "start": "node dist/index.js",
+    "server": "node server/index.js",
     "postinstall": "npm run build",
     "check": "tsc",
     "check:format": "prettier --check '**/*.ts'",
-    "format": "prettier --write '**/*.ts'"
+    "format": "prettier --write '**/*.ts'",
+    "prepare": "husky install || true"
   },
   "keywords": [],
   "type": "module",
@@ -36,6 +38,10 @@
     "ai": "^4.3.16",
     "dotenv": "^17.2.0",
     "exa-js": "^1.8.17",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "express-session": "^1.17.3",
+    "helmet": "^7.1.0",
     "inngest": "^3.40.2",
     "inngest-cli": "^1.11.5",
     "openai": "^6.9.1",
@@ -45,7 +51,11 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/express-session": "^1.17.10",
     "@types/node": "^24.6.2",
+    "detect-secrets": "^1.0.0",
+    "husky": "^8.0.3",
     "mastra": "^0.14.0",
     "prettier": "^3.6.2",
     "ts-node": "^10.9.1",

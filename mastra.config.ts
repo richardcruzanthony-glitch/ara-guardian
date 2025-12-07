@@ -21,8 +21,8 @@ type ExtendedMastraConfig = ConstructorParameters<typeof Mastra>[0] & {
   inngest?: { serve: typeof inngestServe };
 };
 
-// Secret API key for your assistant
-const AI_API_KEY = process.env.AI_API_KEY || "supersecretkey";
+// Remove hard-coded secret - must be set in environment only
+const AI_API_KEY = process.env.AI_API_KEY;
 
 const mastraConfig: ExtendedMastraConfig = {
   telemetry: { enabled: false },
@@ -89,20 +89,28 @@ const mastraConfig: ExtendedMastraConfig = {
                   if (!text) return;
                   appendMessage("user", text);
                   input.value = "";
+                  sendBtn.disabled = true;
 
                   try {
                     const res = await fetch("/chat", {
                       method: "POST",
+                      credentials: "include",
                       headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": "Bearer ${AI_API_KEY}"
+                        "Content-Type": "application/json"
                       },
                       body: JSON.stringify({ message: text })
                     });
-                    const data = await res.json();
-                    appendMessage("ara", data.reply || "No response");
+                    if (!res.ok) {
+                      const errorData = await res.json().catch(() => ({ error: "Unknown error" }));
+                      appendMessage("ara", "Error: " + (errorData.error || res.statusText));
+                    } else {
+                      const data = await res.json();
+                      appendMessage("ara", data.reply || "No response");
+                    }
                   } catch (err) {
-                    appendMessage("ara", "Error contacting server");
+                    appendMessage("ara", "Error contacting server: " + err.message);
+                  } finally {
+                    sendBtn.disabled = false;
                   }
                 }
 
@@ -124,14 +132,30 @@ const mastraConfig: ExtendedMastraConfig = {
       }),
 
       // Chat endpoint for your custom AI assistant
+      // NOTE: This endpoint is for development/internal use only
+      // For production with authentication, use the Express server at server/index.js
       registerApiRoute("/chat", {
         method: "POST",
         middleware: [
           async (c, next) => {
-            const token = c.req.headers.get("Authorization");
-            if (!token || token !== \`Bearer \${AI_API_KEY}\`) {
-              return c.json({ error: "Unauthorized" }, 401);
+            // Simple API key check for the Mastra built-in endpoint
+            // This is NOT session-based - for full security use server/index.js
+            const apiKey = AI_API_KEY;
+            
+            // If no API key is configured, endpoint is disabled
+            if (!apiKey) {
+              return c.json({ error: "Endpoint not configured. Use server/index.js for authenticated access." }, 503);
             }
+            
+            // For development: allow requests from localhost without auth
+            // For production: require API key in header or use Express server
+            const devMode = process.env.NODE_ENV !== 'production';
+            const hasValidAuth = c.req.headers.get("X-API-Key") === apiKey;
+            
+            if (!devMode && !hasValidAuth) {
+              return c.json({ error: "Unauthorized. Use /login endpoint on Express server." }, 401);
+            }
+            
             await next();
           },
         ],

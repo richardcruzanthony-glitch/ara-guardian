@@ -14,6 +14,23 @@ const statusLine = document.getElementById("statusLine");
 
 let recorder;
 let chunks = [];
+let csrfToken = null;
+
+// Fetch CSRF token from server
+const fetchCsrfToken = async () => {
+  try {
+    const response = await fetch('/csrf-token', { credentials: 'include' });
+    if (response.ok) {
+      const data = await response.json();
+      csrfToken = data.csrfToken;
+    }
+  } catch (error) {
+    console.error('Failed to fetch CSRF token:', error);
+  }
+};
+
+// Fetch token on load
+fetchCsrfToken();
 
 const renderBase = "https://ara-guardian.onrender.com";
 const sampleTunnel = renderBase;
@@ -61,10 +78,21 @@ const sendChat = async ({ message, files }) => {
   const base = normalizeBase(apiBaseInput.value || "");
   const endpoint = base ? `${base}/api/chat` : "/api/chat";
 
+  const submitButton = form.querySelector('button[type="submit"]');
+  if (submitButton) submitButton.disabled = true;
+
   try {
+    const headers = { "Content-Type": "application/json" };
+    
+    // Add CSRF token if available (for Express server)
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+    
     const response = await fetch(endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      headers,
       body: JSON.stringify({
         message,
         files: files?.map((file) => ({ name: file.name, size: file.size })),
@@ -73,7 +101,23 @@ const sendChat = async ({ message, files }) => {
       }),
     });
 
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) {
+      const contentType = response.headers.get('content-type');
+      let errorData;
+      if (contentType && contentType.includes('application/json')) {
+        errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      } else {
+        errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
+      }
+      
+      // If CSRF error, refresh token and notify user
+      if (response.status === 403) {
+        await fetchCsrfToken();
+        errorData.error += ' (Security token refreshed, please try again)';
+      }
+      
+      throw new Error(errorData.error || `HTTP ${response.status}`);
+    }
     const data = await response.json();
     appendMessage("Ara", data.text || "Agent responded with no text", "agent");
   } catch (error) {
@@ -82,6 +126,8 @@ const sendChat = async ({ message, files }) => {
       `Unable to reach backend (${error.message}). Check that the tunnel or local server is running.`,
       "system",
     );
+  } finally {
+    if (submitButton) submitButton.disabled = false;
   }
 };
 
