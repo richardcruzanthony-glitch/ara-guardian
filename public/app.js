@@ -61,9 +61,13 @@ const sendChat = async ({ message, files }) => {
   const base = normalizeBase(apiBaseInput.value || "");
   const endpoint = base ? `${base}/api/chat` : "/api/chat";
 
+  const submitButton = form.querySelector('button[type="submit"]');
+  if (submitButton) submitButton.disabled = true;
+
   try {
     const response = await fetch(endpoint, {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message,
@@ -73,7 +77,10 @@ const sendChat = async ({ message, files }) => {
       }),
     });
 
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(errorData.error || `HTTP ${response.status}`);
+    }
     const data = await response.json();
     appendMessage("Ara", data.text || "Agent responded with no text", "agent");
   } catch (error) {
@@ -82,6 +89,8 @@ const sendChat = async ({ message, files }) => {
       `Unable to reach backend (${error.message}). Check that the tunnel or local server is running.`,
       "system",
     );
+  } finally {
+    if (submitButton) submitButton.disabled = false;
   }
 };
 

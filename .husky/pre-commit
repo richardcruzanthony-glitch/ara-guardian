@@ -1,0 +1,55 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Pre-commit hook to detect secrets
+echo "🔍 Scanning for secrets..."
+
+# Check for common secret patterns
+SECRETS_FOUND=0
+
+# Patterns to check
+PATTERNS=(
+  "supersecretkey"
+  "BEGIN RSA PRIVATE KEY"
+  "BEGIN PRIVATE KEY"
+  "aws_access_key_id"
+  "aws_secret_access_key"
+  "AKIA[0-9A-Z]{16}"
+  "['\"]password['\"]\\s*:\\s*['\"][^'\"]{8,}"
+  "api[_-]?key['\"]\\s*:\\s*['\"][^'\"]{20,}"
+  "Bearer [A-Za-z0-9\\-\\._~\\+\\/]+"
+  "ghp_[0-9a-zA-Z]{36}"
+  "gho_[0-9a-zA-Z]{36}"
+  "sk-[A-Za-z0-9]{32,}"
+)
+
+# Get staged files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -z "$STAGED_FILES" ]; then
+  echo "✅ No staged files to check"
+  exit 0
+fi
+
+# Check each pattern
+for PATTERN in "${PATTERNS[@]}"; do
+  if echo "$STAGED_FILES" | xargs grep -iE "$PATTERN" 2>/dev/null; then
+    echo "❌ Potential secret detected matching pattern: $PATTERN"
+    SECRETS_FOUND=1
+  fi
+done
+
+if [ $SECRETS_FOUND -eq 1 ]; then
+  echo ""
+  echo "❌ COMMIT BLOCKED: Potential secrets detected in staged files!"
+  echo ""
+  echo "Please review the flagged content and ensure no secrets are committed."
+  echo "If this is a false positive, you can:"
+  echo "  1. Update the secret pattern detection in .husky/pre-commit"
+  echo "  2. Use git commit --no-verify (NOT recommended for actual secrets)"
+  echo ""
+  exit 1
+fi
+
+echo "✅ No secrets detected"
+exit 0
