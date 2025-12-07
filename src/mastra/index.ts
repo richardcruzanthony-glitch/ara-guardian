@@ -16,13 +16,14 @@ import { adjuster } from "./tools/adjuster.js";
 import { inngestServe } from "./inngest/index.js";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers.js";
 
-// Secret API key for secure chat
-const AI_API_KEY = process.env.AI_API_KEY || "supersecretkey";
-
+// Extend Mastra config for tools & inngest
 type ExtendedMastraConfig = ConstructorParameters<typeof Mastra>[0] & {
   tools?: unknown[];
   inngest?: { serve: typeof inngestServe };
 };
+
+// Secret API key for secure chat
+const AI_API_KEY = process.env.AI_API_KEY || "supersecretkey";
 
 const mastraConfig: ExtendedMastraConfig = {
   telemetry: { enabled: false },
@@ -40,10 +41,12 @@ const mastraConfig: ExtendedMastraConfig = {
     host: "0.0.0.0",
     port: Number(process.env.PORT) || 5000,
     apiRoutes: [
+      // Root route with interactive chat
       registerApiRoute("/", {
         method: "GET",
         handler: async (c) => {
-          const html = `<!DOCTYPE html>
+          return c.html(`
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -86,6 +89,7 @@ async function sendMessage() {
   if (!text) return;
   appendMessage("user", text);
   input.value = "";
+
   try {
     const res = await fetch("/chat", {
       method: "POST",
@@ -106,11 +110,12 @@ sendBtn.addEventListener("click", sendMessage);
 input.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMessage(); });
 </script>
 </body>
-</html>`;
-          return c.html(html);
+</html>
+          `);
         },
       }),
 
+      // Test JSON route
       registerApiRoute("/my-custom-route", {
         method: "GET",
         handler: async (c) => {
@@ -118,11 +123,12 @@ input.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMessage();
         },
       }),
 
+      // Chat endpoint
       registerApiRoute("/chat", {
         method: "POST",
         middleware: [
           async (c, next) => {
-            const token = c.req.headers.get("Authorization");
+            const token = c.req.header("Authorization"); // fixed 'headers' -> 'header'
             if (!token || token !== `Bearer ${AI_API_KEY}`) {
               return c.json({ error: "Unauthorized" }, 401);
             }
@@ -134,9 +140,11 @@ input.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMessage();
           if (!message) return c.json({ error: "No message provided" }, 400);
 
           const agent = mastra.getAgents()["default"];
-          if (!agent) return c.json({ error: "No agent found" }, 500);
+          if (!agent || !("run" in agent))
+            return c.json({ error: "Agent not ready" }, 500);
 
-          const reply = await agent.run(message);
+          // Use agent.run safely
+          const reply = await (agent as any).run(message);
           return c.json({ reply });
         },
       }),
@@ -144,14 +152,20 @@ input.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMessage();
   },
   inngest: { serve: inngestServe },
   mcpServers: {
-    allTools: new MCPServer({ name: "allTools", version: "1.0.0", tools: {} }),
+    allTools: new MCPServer({
+      name: "allTools",
+      version: "1.0.0",
+      tools: {},
+    }),
   },
 };
 
 export const mastra = new Mastra(mastraConfig);
 
+// TELEGRAM TRIGGER
 registerTelegramTrigger(mastra);
 
+// ONLY ONE AGENT
 if (Object.keys(mastra.getAgents()).length > 1)
   throw new Error("Only 1 agent allowed");
 
