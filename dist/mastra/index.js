@@ -13,8 +13,11 @@ import { inngestServe } from "./inngest/index.js";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers.js";
 import { registerApiRoute } from "@mastra/core/server";
 import { exampleAgent } from "./agents/exampleAgent.js";
-// Secret API key
-const AI_API_KEY = process.env.AI_API_KEY || "supersecretkey";
+// Secret API key for external API access (optional)
+const AI_API_KEY = process.env.AI_API_KEY;
+if (!AI_API_KEY) {
+    console.warn("[SECURITY] AI_API_KEY not set - external API access will be unrestricted. Set AI_API_KEY environment variable for production.");
+}
 const mastraConfig = {
     telemetry: { enabled: false },
     agents: { exampleAgent },
@@ -109,9 +112,10 @@ const mastraConfig = {
                 middleware: [
                     async (c, next) => {
                         const token = c.req.header("Authorization");
-                        // Optional authentication: If token is provided, it must be valid
-                        // If no token provided, allow through (for web interface)
-                        if (token && token !== `Bearer ${AI_API_KEY}`) {
+                        // Optional authentication: If AI_API_KEY is set and token is provided, it must match
+                        // If no AI_API_KEY is set, allow all requests
+                        // If token is provided but doesn't match, reject
+                        if (AI_API_KEY && token && token !== `Bearer ${AI_API_KEY}`) {
                             return c.json({ error: "Unauthorized" }, 401);
                         }
                         await next();
