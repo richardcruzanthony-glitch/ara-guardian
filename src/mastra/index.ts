@@ -37,18 +37,42 @@ const mastraConfig: ExtendedMastraConfig = {
     host: "0.0.0.0",
     port: Number(process.env.PORT) || 5000,
     apiRoutes: [
-      // Root route
+      // Root route — HTML homepage
       registerApiRoute("/", {
         method: "GET",
         handler: async (c) => {
-          return c.json({
-            status: "OK",
-            message: "ARA Guardian Server is running",
-            routes: ["/my-custom-route"],
-          });
+          return c.html(`
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>ARA Guardian</title>
+              <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+                h1 { color: #333; }
+                a { color: #1a73e8; text-decoration: none; font-weight: bold; }
+                a:hover { text-decoration: underline; }
+                .box { background: #fff; padding: 20px; border-radius: 10px; display: inline-block; }
+              </style>
+            </head>
+            <body>
+              <div class="box">
+                <h1>ARA Guardian</h1>
+                <p>Mastra Server is <strong>running</strong>!</p>
+                <p>Available routes:</p>
+                <ul>
+                  <li><a href="/my-custom-route">/my-custom-route</a></li>
+                </ul>
+                <p>Powered by <a href="https://mastra.ai" target="_blank">Mastra</a></p>
+              </div>
+            </body>
+            </html>
+          `);
         },
       }),
-      // Custom test route
+
+      // Custom JSON route — test route
       registerApiRoute("/my-custom-route", {
         method: "GET",
         handler: async (c) => {
