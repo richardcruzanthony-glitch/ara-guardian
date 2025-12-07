@@ -168,6 +168,24 @@
     const loginBtn = document.getElementById('loginBtn');
     const messageDiv = document.getElementById('message');
     
+    let csrfToken = null;
+    
+    // Fetch CSRF token on page load
+    async function fetchCsrfToken() {
+      try {
+        const response = await fetch('/csrf-token', {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        csrfToken = data.csrfToken;
+      } catch (error) {
+        console.error('Failed to fetch CSRF token:', error);
+      }
+    }
+    
+    // Fetch token when page loads
+    fetchCsrfToken();
+    
     function showMessage(text, type) {
       messageDiv.textContent = text;
       messageDiv.className = `message ${type}`;
@@ -189,6 +207,11 @@
         return;
       }
       
+      if (!csrfToken) {
+        showMessage('Security token not available. Please refresh the page.', 'error');
+        return;
+      }
+      
       loginBtn.disabled = true;
       loginBtn.textContent = 'Logging in...';
       
@@ -197,7 +220,8 @@
           method: 'POST',
           credentials: 'include',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken
           },
           body: JSON.stringify({ password })
         });
@@ -213,6 +237,8 @@
           showMessage(data.message || 'Login failed. Please check your password.', 'error');
           loginBtn.disabled = false;
           loginBtn.textContent = 'Login';
+          // Refresh CSRF token after failed attempt
+          await fetchCsrfToken();
         }
       } catch (error) {
         showMessage('Unable to connect to server. Please try again.', 'error');

@@ -14,6 +14,23 @@ const statusLine = document.getElementById("statusLine");
 
 let recorder;
 let chunks = [];
+let csrfToken = null;
+
+// Fetch CSRF token from server
+const fetchCsrfToken = async () => {
+  try {
+    const response = await fetch('/csrf-token', { credentials: 'include' });
+    if (response.ok) {
+      const data = await response.json();
+      csrfToken = data.csrfToken;
+    }
+  } catch (error) {
+    console.error('Failed to fetch CSRF token:', error);
+  }
+};
+
+// Fetch token on load
+fetchCsrfToken();
 
 const renderBase = "https://ara-guardian.onrender.com";
 const sampleTunnel = renderBase;
@@ -65,10 +82,17 @@ const sendChat = async ({ message, files }) => {
   if (submitButton) submitButton.disabled = true;
 
   try {
+    const headers = { "Content-Type": "application/json" };
+    
+    // Add CSRF token if available (for Express server)
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+    
     const response = await fetch(endpoint, {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         message,
         files: files?.map((file) => ({ name: file.name, size: file.size })),
@@ -85,6 +109,13 @@ const sendChat = async ({ message, files }) => {
       } else {
         errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
       }
+      
+      // If CSRF error, refresh token and notify user
+      if (response.status === 403) {
+        await fetchCsrfToken();
+        errorData.error += ' (Security token refreshed, please try again)';
+      }
+      
       throw new Error(errorData.error || `HTTP ${response.status}`);
     }
     const data = await response.json();

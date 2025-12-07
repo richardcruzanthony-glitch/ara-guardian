@@ -4,6 +4,7 @@ import session from 'express-session';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,9 +39,39 @@ app.use(session({
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production', // Use HTTPS in production
+    sameSite: 'strict', // CSRF protection
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
+
+// Simple CSRF protection middleware using double-submit cookie pattern
+const csrfProtection = (req, res, next) => {
+  // Skip CSRF for GET requests (they should be safe)
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
+    return next();
+  }
+  
+  // Get CSRF token from session
+  const sessionToken = req.session?.csrfToken;
+  
+  // Get CSRF token from request (header or body)
+  const requestToken = req.headers['x-csrf-token'] || req.body?._csrf;
+  
+  // Validate token
+  if (!sessionToken || !requestToken || sessionToken !== requestToken) {
+    return res.status(403).json({ error: 'Invalid CSRF token' });
+  }
+  
+  next();
+};
+
+// Generate CSRF token for session
+app.use((req, res, next) => {
+  if (req.session && !req.session.csrfToken) {
+    req.session.csrfToken = crypto.randomBytes(32).toString('hex');
+  }
+  next();
+});
 
 // Rate limiting
 const limiter = rateLimit({
@@ -54,9 +85,14 @@ app.use('/api/', limiter);
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, '../public')));
 
+// CSRF token endpoint
+app.get('/csrf-token', (req, res) => {
+  res.json({ csrfToken: req.session.csrfToken });
+});
+
 // Demo login endpoint (for development/testing only)
 // Disabled in production for security
-app.post('/login', (req, res) => {
+app.post('/login', csrfProtection, (req, res) => {
   if (process.env.NODE_ENV === 'production' && !process.env.DEMO_PASSWORD) {
     return res.status(403).json({ 
       success: false, 
@@ -86,7 +122,7 @@ app.post('/login', (req, res) => {
 });
 
 // Logout endpoint
-app.post('/logout', (req, res) => {
+app.post('/logout', csrfProtection, (req, res) => {
   req.session.destroy((err) => {
     if (err) {
       res.status(500).json({ success: false, message: 'Logout failed' });
@@ -106,7 +142,7 @@ const requireAuth = (req, res, next) => {
 };
 
 // Chat endpoint with session authentication
-app.post('/api/chat', requireAuth, async (req, res) => {
+app.post('/api/chat', csrfProtection, requireAuth, async (req, res) => {
   try {
     const { message } = req.body;
     
