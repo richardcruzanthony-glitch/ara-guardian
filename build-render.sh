@@ -7,12 +7,20 @@ echo "Building for Render deployment..."
 # Install dependencies
 npm install
 
-# Use TypeScript compiler instead of mastra build to avoid bundler issues
+# Use TypeScript compiler to compile to dist/
 echo "Compiling TypeScript..."
-npx tsc --outDir .mastra/output --module esnext --moduleResolution bundler
+npx tsc
+
+# Create output directory structure
+echo "Creating .mastra/output structure..."
+mkdir -p .mastra/output/src/mastra
+
+# Copy compiled files from dist/ to .mastra/output/
+echo "Copying compiled files..."
+cp -r dist/src/* .mastra/output/src/ 2>/dev/null || true
 
 # Copy package files
-echo "Copying package.json and creating output structure..."
+echo "Copying package.json..."
 cp package.json .mastra/output/
 cp package-lock.json .mastra/output/ 2>/dev/null || true
 
@@ -32,3 +40,4 @@ EOF
 touch .mastra/output/instrumentation.mjs
 
 echo "Build complete!"
+echo "Compiled files are in .mastra/output/"

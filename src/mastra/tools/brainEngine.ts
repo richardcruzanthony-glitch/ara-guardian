@@ -1,12 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-
-const ENCRYPTION_KEY = process.env.BRAIN_ENCRYPTION_KEY || 'ara-brain-default-key-32chars!';
-const ENCRYPTION_IV = process.env.BRAIN_ENCRYPTION_IV || '1234567890123456';
-
-// RENDER ALWAYS USES THIS EXACT PATH — PUT IT FIRST
-const RENDER_MEMORY_PATH = "/opt/render/project/src/us-complete.txt";
+import { BRAIN_ENCRYPTION_KEY, BRAIN_ENCRYPTION_IV, MEMORY_PATH } from '../../config.js';
+import { logger } from '../../logger.js';
 
 interface MemoryNode {
   content: string;
@@ -97,11 +93,13 @@ class BrainEngine {
 
     const cwd = process.cwd();
 
+    // Primary memory path from config, with fallback search paths
     const memoryPaths = [
-      RENDER_MEMORY_PATH,
+      MEMORY_PATH,
       path.join(cwd, 'us-complete.txt'),
       path.join(cwd, '.mastra/output/us-complete.txt'),
       path.join(cwd, 'public/us-complete.txt'),
+      '/opt/render/project/src/us-complete.txt',
       '/home/runner/workspace/us-complete.txt',
       '/home/runner/workspace/.mastra/output/us-complete.txt',
     ];
@@ -115,22 +113,28 @@ class BrainEngine {
           if (content.startsWith('ENCRYPTED:')) {
             // TODO: Implement decryptMemory method
             // content = this.decryptMemory(content.substring(10));
-            console.log(`[BrainEngine] Warning: Encrypted memory found but decryption not implemented`);
+            logger.warn(`BrainEngine: Encrypted memory found but decryption not implemented`);
             content = content.substring(10); // Skip encryption for now
             this.encryptionEnabled = true;
-            console.log(`[BrainEngine] Loaded encrypted memory from: ${memPath}`);
+            logger.info(`BrainEngine: Loaded encrypted memory from: ${memPath}`);
           } else {
-            console.log(`[BrainEngine] Loaded memory from: ${memPath}`);
+            logger.info(`BrainEngine: Loaded memory from: ${memPath}`);
           }
           break;
         }
       } catch (e) {
-        // silent
+        logger.debug(`BrainEngine: Could not load from ${memPath}`, e);
       }
     }
 
     if (content) {
-      this.loadKnowledgeBase(content);
+      try {
+        this.loadKnowledgeBase(content);
+      } catch (e) {
+        logger.error('BrainEngine: Failed to load knowledge base', e);
+      }
+    } else {
+      logger.warn('BrainEngine: No memory file found, starting with empty knowledge base');
     }
 
     this.initialized = true;
@@ -172,7 +176,7 @@ class BrainEngine {
     }
 
     this.buildAssociations();
-    console.log(`[BrainEngine] Loaded ${this.longTermMemory.size} memory nodes`);
+    logger.info(`BrainEngine: Loaded ${this.longTermMemory.size} memory nodes`);
   }
 
   private buildAssociations() {
