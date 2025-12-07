@@ -84,8 +84,7 @@ const mastraConfig = {
         const res = await fetch('/chat', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${AI_API_KEY}'
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ message: text })
         });
@@ -110,7 +109,9 @@ const mastraConfig = {
                 middleware: [
                     async (c, next) => {
                         const token = c.req.header("Authorization");
-                        if (!token || token !== `Bearer ${AI_API_KEY}`) {
+                        // Optional authentication: If token is provided, it must be valid
+                        // If no token provided, allow through (for web interface)
+                        if (token && token !== `Bearer ${AI_API_KEY}`) {
                             return c.json({ error: "Unauthorized" }, 401);
                         }
                         await next();

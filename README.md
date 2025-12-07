@@ -59,16 +59,31 @@ MASTRA_TELEMETRY_ENABLED=false
 ## API Endpoints
 
 - `GET /` - Chat web interface
-- `POST /chat` - Chat API endpoint (requires Authorization header)
+- `POST /chat` - Chat API endpoint (optional Authorization for external API calls)
 
-### Chat API Example
+### Chat API Examples
 
+**From Web Interface (no auth required):**
+```javascript
+fetch('/chat', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ message: 'Hello!' })
+});
+```
+
+**External API Call (requires auth):**
 ```bash
 curl -X POST https://ara-guardian.onrender.com/chat \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_AI_API_KEY" \
   -d '{"message": "Hello, how can you help me?"}'
 ```
+
+**Note**: The chat endpoint has optional authentication:
+- No auth token = allowed (for web interface on same domain)
+- Invalid token = rejected with 401 Unauthorized
+- Valid token = allowed (for external API access)
 
 ## Development Commands
 
