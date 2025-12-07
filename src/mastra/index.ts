@@ -14,6 +14,7 @@ import { adjuster } from "./tools/adjuster.js";
 
 import { inngestServe } from "./inngest/index.js";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers.js";
+import { registerApiRoute } from "@mastra/core/server";
 
 type ExtendedMastraConfig = ConstructorParameters<typeof Mastra>[0] & {
   tools?: unknown[];
@@ -35,6 +36,26 @@ const mastraConfig: ExtendedMastraConfig = {
   server: {
     host: "0.0.0.0",
     port: Number(process.env.PORT) || 5000,
+    apiRoutes: [
+      // Root route
+      registerApiRoute("/", {
+        method: "GET",
+        handler: async (c) => {
+          return c.json({
+            status: "OK",
+            message: "ARA Guardian Server is running",
+            routes: ["/my-custom-route"],
+          });
+        },
+      }),
+      // Custom test route
+      registerApiRoute("/my-custom-route", {
+        method: "GET",
+        handler: async (c) => {
+          return c.json({ message: "Hello from my custom route!" });
+        },
+      }),
+    ],
   },
   inngest: { serve: inngestServe },
   mcpServers: {
@@ -50,6 +71,7 @@ export const mastra = new Mastra(mastraConfig);
 
 // TELEGRAM IS BACK — FULLY COMPATIBLE
 registerTelegramTrigger(mastra);
+
 // ONLY ONE AGENT — KEEPS IT CLEAN
 if (Object.keys(mastra.getAgents()).length > 1)
   throw new Error("Only 1 agent allowed");
