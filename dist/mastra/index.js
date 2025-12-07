@@ -115,23 +115,51 @@ const mastraConfig = {
                     },
                 ],
                 handler: async (c) => {
-                    const { message } = await c.req.json();
-                    if (!message)
-                        return c.json({ error: "No message provided" }, 400);
-                    const agents = mastra.getAgents();
-                    const agentNames = Object.keys(agents);
-                    if (agentNames.length === 0)
-                        return c.json({ error: "No agent found" }, 500);
-                    const agent = agents[agentNames[0]];
-                    let reply;
                     try {
-                        reply = await agent.run(message);
+                        // Log incoming request
+                        console.log('[POST /chat] Request received');
+                        const { message } = await c.req.json();
+                        console.log('[POST /chat] Message:', message?.substring(0, 100));
+                        if (!message) {
+                            console.warn('[POST /chat] Missing message in request body');
+                            return c.json({ error: "No message provided" }, 400);
+                        }
+                        const agents = mastra.getAgents();
+                        const agentNames = Object.keys(agents);
+                        if (agentNames.length === 0) {
+                            console.error('[POST /chat] No agents available');
+                            return c.json({ error: "No agent found" }, 500);
+                        }
+                        const agent = agents[agentNames[0]];
+                        console.log('[POST /chat] Using agent:', agentNames[0]);
+                        let reply;
+                        try {
+                            // Use generate() instead of run() for Mastra v0.20+
+                            const response = await agent.generate({
+                                messages: [{ role: "user", content: message }]
+                            });
+                            reply = response.text || "No response";
+                            console.log('[POST /chat] Agent response generated successfully');
+                        }
+                        catch (e) {
+                            console.error('[POST /chat] Agent generation failed:', {
+                                error: e.message,
+                                stack: process.env.NODE_ENV !== 'production' ? e.stack : undefined
+                            });
+                            reply = "ARA could not process your message";
+                        }
+                        return c.json({ reply });
                     }
-                    catch (e) {
-                        console.error('Agent run failed:', e);
-                        reply = "ARA could not process your message";
+                    catch (error) {
+                        console.error('[POST /chat] Unhandled error:', {
+                            error: error.message,
+                            stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+                        });
+                        return c.json({
+                            error: "Internal server error",
+                            details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+                        }, 500);
                     }
-                    return c.json({ reply });
                 },
             }),
         ],
