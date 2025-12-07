@@ -119,7 +119,7 @@ const mastraConfig: ExtendedMastraConfig = {
         middleware: [
           async (c, next) => {
             const token = c.req.header("Authorization");
-            if (!token || token !== \`Bearer \${AI_API_KEY}\`) {
+            if (!token || token !== `Bearer ${AI_API_KEY}`) {
               return c.json({ error: "Unauthorized" }, 401);
             }
             await next();
