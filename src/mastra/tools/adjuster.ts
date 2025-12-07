@@ -7,6 +7,18 @@ import { dirname } from "path";
 import { MEMORY_PATH } from "../../config.js";
 import { logger } from "../../logger.js";
 
+/**
+ * Sanitize user input to prevent injection attacks
+ */
+function sanitizeInput(input: string): string {
+  // Remove or escape potentially dangerous characters
+  return input
+    .replace(/[\r\n]+/g, ' ')  // Replace newlines with spaces
+    .replace(/["\\\x00-\x1f\x7f]/g, '')  // Remove control characters and quotes
+    .trim()
+    .substring(0, 500);  // Limit length
+}
+
 export const adjuster = {
   name: "adjust",
   description: "Ara uses this to permanently learn from corrections and never repeat mistakes",
@@ -15,7 +27,16 @@ export const adjuster = {
     correction: z.string().describe("The correct answer or behavior"),
   }),
   execute: async ({ mistake, correction }: { mistake: string; correction: string }) => {
-    const rule = `\nRULE: If user mentions anything similar to "${mistake}", always reply with: "${correction}"\n`;
+    // Sanitize inputs to prevent injection attacks
+    const safeMistake = sanitizeInput(mistake);
+    const safeCorrection = sanitizeInput(correction);
+    
+    if (!safeMistake || !safeCorrection) {
+      logger.warn("Adjuster: Invalid input provided (empty after sanitization)");
+      return "Invalid correction input provided.";
+    }
+
+    const rule = `\nRULE: If user mentions anything similar to "${safeMistake}", always reply with: "${safeCorrection}"\n`;
 
     try {
       // Ensure the directory exists

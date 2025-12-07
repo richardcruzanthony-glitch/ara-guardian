@@ -19,11 +19,15 @@ export const APP_PORT = parseInt(process.env.PORT || '5000', 10);
 
 /**
  * Brain encryption key for memory encryption (optional)
+ * WARNING: Default key is for development only. Set BRAIN_ENCRYPTION_KEY
+ * environment variable to a secure random value in production.
  */
 export const BRAIN_ENCRYPTION_KEY = process.env.BRAIN_ENCRYPTION_KEY || 'ara-brain-default-key-32chars!';
 
 /**
  * Brain encryption IV for memory encryption (optional)
+ * WARNING: Default IV is for development only. Set BRAIN_ENCRYPTION_IV
+ * environment variable to a secure random value in production.
  */
 export const BRAIN_ENCRYPTION_IV = process.env.BRAIN_ENCRYPTION_IV || '1234567890123456';
 

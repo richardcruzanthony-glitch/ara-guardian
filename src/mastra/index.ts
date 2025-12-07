@@ -1,6 +1,7 @@
 // IRON MODE — TELEMETRY DEAD FOREVER
 import { AI_API_KEY, APP_PORT, authRequired } from "../config.js";
 import { logger } from "../logger.js";
+import { timingSafeEqual } from "crypto";
 
 import { Mastra } from "@mastra/core";
 import { MCPServer } from "@mastra/mcp";
@@ -22,6 +23,22 @@ type ExtendedMastraConfig = ConstructorParameters<typeof Mastra>[0] & {
   inngest?: { serve: typeof inngestServe };
 };
 
+/**
+ * Constant-time string comparison to prevent timing attacks
+ */
+function secureCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  try {
+    const bufferA = Buffer.from(a, 'utf-8');
+    const bufferB = Buffer.from(b, 'utf-8');
+    return timingSafeEqual(bufferA, bufferB);
+  } catch {
+    return false;
+  }
+}
+
 const mastraConfig: ExtendedMastraConfig = {
   telemetry: { enabled: false },
   tools: [
@@ -42,7 +59,10 @@ const mastraConfig: ExtendedMastraConfig = {
       registerApiRoute("/", {
         method: "GET",
         handler: async (c) => {
-          // Render API key into the page if authentication is enabled
+          // NOTE: The API key is exposed in the frontend for simplicity.
+          // For production use, consider implementing a backend proxy or
+          // session-based authentication to avoid exposing the API key in client code.
+          // Current approach: Render API key into the page if authentication is enabled
           const authHeader = authRequired() ? `'Authorization': 'Bearer ${AI_API_KEY}'` : '';
           const headers = authRequired() 
             ? `'Content-Type': 'application/json', ${authHeader}` 
@@ -139,11 +159,11 @@ const mastraConfig: ExtendedMastraConfig = {
               authHeader = '';
             }
 
-            // Normalize and compare (case-insensitive)
+            // Normalize and compare using constant-time comparison
             const expectedToken = `bearer ${AI_API_KEY}`.toLowerCase();
             const receivedToken = authHeader.toLowerCase();
 
-            if (!authHeader || receivedToken !== expectedToken) {
+            if (!authHeader || !secureCompare(receivedToken, expectedToken)) {
               logger.warn("Unauthorized access attempt to /chat", { 
                 hasHeader: !!authHeader, 
                 headerPrefix: authHeader.substring(0, 10) 

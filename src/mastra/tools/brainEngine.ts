@@ -99,7 +99,6 @@ class BrainEngine {
       path.join(cwd, 'us-complete.txt'),
       path.join(cwd, '.mastra/output/us-complete.txt'),
       path.join(cwd, 'public/us-complete.txt'),
-      '/opt/render/project/src/us-complete.txt',
       '/home/runner/workspace/us-complete.txt',
       '/home/runner/workspace/.mastra/output/us-complete.txt',
     ];
