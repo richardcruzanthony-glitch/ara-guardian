@@ -11,6 +11,7 @@ import { gpt4o } from "./tools/gpt4o.js";
 import { scraper } from "./tools/scraper.js";
 import { skillInstaller } from "./tools/skillInstaller.js";
 import { adjuster } from "./tools/adjuster.js";
+import { exampleAgent } from "./agents/exampleAgent.js";
 
 import { inngestServe } from "./inngest/index.js";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers.js";
@@ -26,6 +27,7 @@ const AI_API_KEY = process.env.AI_API_KEY || "supersecretkey";
 
 const mastraConfig: ExtendedMastraConfig = {
   telemetry: { enabled: false },
+  agents: { exampleAgent },
   tools: [
     brainEngine,
     generateQuote,
