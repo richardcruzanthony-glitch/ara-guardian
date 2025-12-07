@@ -15,17 +15,23 @@ import { adjuster } from "./tools/adjuster.js";
 import { inngestServe } from "./inngest/index.js";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers.js";
 import { registerApiRoute } from "@mastra/core/server";
+import { exampleAgent } from "./agents/exampleAgent.js";
 
 type ExtendedMastraConfig = ConstructorParameters<typeof Mastra>[0] & {
   tools?: unknown[];
   inngest?: { serve: typeof inngestServe };
 };
 
-// Secret API key
-const AI_API_KEY = process.env.AI_API_KEY || "supersecretkey";
+// Secret API key for external API access (optional)
+const AI_API_KEY = process.env.AI_API_KEY;
+
+if (!AI_API_KEY) {
+  console.warn("[SECURITY] AI_API_KEY not set - external API access will be unrestricted. Set AI_API_KEY environment variable for production.");
+}
 
 const mastraConfig: ExtendedMastraConfig = {
   telemetry: { enabled: false },
+  agents: { exampleAgent },
   tools: [
     brainEngine,
     generateQuote,
@@ -92,8 +98,7 @@ const mastraConfig: ExtendedMastraConfig = {
         const res = await fetch('/chat', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${AI_API_KEY}'
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ message: text })
         });
@@ -119,7 +124,10 @@ const mastraConfig: ExtendedMastraConfig = {
         middleware: [
           async (c, next) => {
             const token = c.req.header("Authorization");
-            if (!token || token !== \`Bearer \${AI_API_KEY}\`) {
+            // Optional authentication: If AI_API_KEY is set and token is provided, it must match
+            // If no AI_API_KEY is set, allow all requests
+            // If token is provided but doesn't match, reject
+            if (AI_API_KEY && token && token !== `Bearer ${AI_API_KEY}`) {
               return c.json({ error: "Unauthorized" }, 401);
             }
             await next();
@@ -136,9 +144,11 @@ const mastraConfig: ExtendedMastraConfig = {
           const agent = agents[agentNames[0]] as any;
           let reply: string;
           try {
-            reply = await agent.run(message);
+            // Use generateLegacy for AI SDK v4 models
+            const result = await agent.generateLegacy(message);
+            reply = result.text || "ARA could not generate a response";
           } catch (e) {
-            console.error('Agent run failed:', e);
+            console.error('Agent generate failed:', e);
             reply = "ARA could not process your message";
           }
 

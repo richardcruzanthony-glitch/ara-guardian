@@ -20,7 +20,8 @@ try {
   execSync("npx --package=typescript tsc", { stdio: "inherit" });
 
   log("Writing dist/index.js entry point");
-  const entryPoint = `import mastra from "./mastra/index.js";
+  const entryPoint = `import "dotenv/config";
+import mastra from "./mastra/index.js";
 import { createNodeServer } from "@mastra/deployer/server";
 
 async function start() {
