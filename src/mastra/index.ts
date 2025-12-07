@@ -12,6 +12,8 @@ import { scraper } from "./tools/scraper.js";
 import { skillInstaller } from "./tools/skillInstaller.js";
 import { adjuster } from "./tools/adjuster.js";
 
+import { araGuardianAgent } from "./agents/araGuardianAgent.js";
+
 import { inngestServe } from "./inngest/index.js";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers.js";
 import { registerApiRoute } from "@mastra/core/server";
@@ -26,6 +28,9 @@ const AI_API_KEY = process.env.AI_API_KEY || "supersecretkey";
 
 const mastraConfig: ExtendedMastraConfig = {
   telemetry: { enabled: false },
+  agents: {
+    araGuardianAgent,
+  },
   tools: [
     brainEngine,
     generateQuote,
@@ -119,7 +124,7 @@ const mastraConfig: ExtendedMastraConfig = {
         middleware: [
           async (c, next) => {
             const token = c.req.header("Authorization");
-            if (!token || token !== \`Bearer \${AI_API_KEY}\`) {
+            if (!token || token !== `Bearer ${AI_API_KEY}`) {
               return c.json({ error: "Unauthorized" }, 401);
             }
             await next();

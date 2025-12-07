@@ -12,6 +12,8 @@ import { scraper } from "./tools/scraper.js";
 import { skillInstaller } from "./tools/skillInstaller.js";
 import { adjuster } from "./tools/adjuster.js";
 
+import { araGuardianAgent } from "./agents/araGuardianAgent.js";
+
 import { inngestServe } from "./inngest/index.js";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers.js";
 import { registerApiRoute } from "@mastra/core/server";
@@ -26,6 +28,9 @@ const AI_API_KEY = process.env.AI_API_KEY || "supersecretkey";
 
 const mastraConfig: ExtendedMastraConfig = {
   telemetry: { enabled: false },
+  agents: {
+    araGuardianAgent,
+  },
   tools: [
     brainEngine,
     generateQuote,
@@ -129,7 +134,7 @@ const mastraConfig: ExtendedMastraConfig = {
         middleware: [
           async (c, next) => {
             const token = c.req.headers.get("Authorization");
-            if (!token || token !== \`Bearer \${AI_API_KEY}\`) {
+            if (!token || token !== `Bearer ${AI_API_KEY}`) {
               return c.json({ error: "Unauthorized" }, 401);
             }
             await next();
@@ -139,7 +144,7 @@ const mastraConfig: ExtendedMastraConfig = {
           const { message } = await c.req.json();
           if (!message) return c.json({ error: "No message provided" }, 400);
 
-          const agent = mastra.getAgents()["default"];
+          const agent = mastra.getAgents()["araGuardianAgent"];
           if (!agent) return c.json({ error: "No agent found" }, 500);
 
           const reply = await agent.run(message);
