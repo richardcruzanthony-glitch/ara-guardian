@@ -1,3 +1,4 @@
+import "dotenv/config";
 import mastra from "./mastra/index.js";
 import { createNodeServer } from "@mastra/deployer/server";
 

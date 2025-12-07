@@ -15,6 +15,7 @@ import { adjuster } from "./tools/adjuster.js";
 import { inngestServe } from "./inngest/index.js";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers.js";
 import { registerApiRoute } from "@mastra/core/server";
+import { exampleAgent } from "./agents/exampleAgent.js";
 
 type ExtendedMastraConfig = ConstructorParameters<typeof Mastra>[0] & {
   tools?: unknown[];
@@ -26,6 +27,7 @@ const AI_API_KEY = process.env.AI_API_KEY || "supersecretkey";
 
 const mastraConfig: ExtendedMastraConfig = {
   telemetry: { enabled: false },
+  agents: { exampleAgent },
   tools: [
     brainEngine,
     generateQuote,
@@ -119,7 +121,7 @@ const mastraConfig: ExtendedMastraConfig = {
         middleware: [
           async (c, next) => {
             const token = c.req.header("Authorization");
-            if (!token || token !== \`Bearer \${AI_API_KEY}\`) {
+            if (!token || token !== `Bearer ${AI_API_KEY}`) {
               return c.json({ error: "Unauthorized" }, 401);
             }
             await next();
@@ -136,9 +138,11 @@ const mastraConfig: ExtendedMastraConfig = {
           const agent = agents[agentNames[0]] as any;
           let reply: string;
           try {
-            reply = await agent.run(message);
+            // Use generateLegacy for AI SDK v4 models
+            const result = await agent.generateLegacy(message);
+            reply = result.text || "ARA could not generate a response";
           } catch (e) {
-            console.error('Agent run failed:', e);
+            console.error('Agent generate failed:', e);
             reply = "ARA could not process your message";
           }
 

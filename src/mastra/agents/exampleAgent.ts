@@ -70,9 +70,9 @@ export const exampleAgent = new Agent({
    * Choose your LLM model
    *
    * MUST use AI SDK v4 syntax for Replit Playground compatibility.
-   * Use openai.responses("gpt-5") for gpt-5 class models, use openai("gpt-4o") for gpt-4 class models.
+   * Use openai("gpt-4o-mini") for chat models, openai.responses("gpt-5") for structured outputs.
    */
-  model: openai.responses("gpt-5"),
+  model: openai("gpt-4o-mini"),
 
   /**
    * Provide tools that the agent can use
