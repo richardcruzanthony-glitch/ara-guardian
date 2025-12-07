@@ -1,5 +1,7 @@
 // IRON MODE — TELEMETRY DEAD FOREVER
-process.env.MASTRA_TELEMETRY_ENABLED = "false";
+import { AI_API_KEY, APP_PORT, authRequired } from "../config.js";
+import { logger } from "../logger.js";
+import { timingSafeEqual } from "crypto";
 
 import { Mastra } from "@mastra/core";
 import { MCPServer } from "@mastra/mcp";
@@ -21,8 +23,21 @@ type ExtendedMastraConfig = ConstructorParameters<typeof Mastra>[0] & {
   inngest?: { serve: typeof inngestServe };
 };
 
-// Secret API key
-const AI_API_KEY = process.env.AI_API_KEY || "supersecretkey";
+/**
+ * Constant-time string comparison to prevent timing attacks
+ */
+function secureCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  try {
+    const bufferA = Buffer.from(a, 'utf-8');
+    const bufferB = Buffer.from(b, 'utf-8');
+    return timingSafeEqual(bufferA, bufferB);
+  } catch {
+    return false;
+  }
+}
 
 const mastraConfig: ExtendedMastraConfig = {
   telemetry: { enabled: false },
@@ -38,12 +53,21 @@ const mastraConfig: ExtendedMastraConfig = {
   ],
   server: {
     host: "0.0.0.0",
-    port: Number(process.env.PORT) || 5000,
+    port: APP_PORT,
     apiRoutes: [
       // HTML Chat Frontend
       registerApiRoute("/", {
         method: "GET",
         handler: async (c) => {
+          // NOTE: The API key is exposed in the frontend for simplicity.
+          // For production use, consider implementing a backend proxy or
+          // session-based authentication to avoid exposing the API key in client code.
+          // Current approach: Render API key into the page if authentication is enabled
+          const authHeader = authRequired() ? `'Authorization': 'Bearer ${AI_API_KEY}'` : '';
+          const headers = authRequired() 
+            ? `'Content-Type': 'application/json', ${authHeader}` 
+            : `'Content-Type': 'application/json'`;
+          
           return c.html(`
 <!DOCTYPE html>
 <html lang="en">
@@ -92,8 +116,7 @@ const mastraConfig: ExtendedMastraConfig = {
         const res = await fetch('/chat', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${AI_API_KEY}'
+            ${headers}
           },
           body: JSON.stringify({ message: text })
         });
@@ -118,10 +141,36 @@ const mastraConfig: ExtendedMastraConfig = {
         method: "POST",
         middleware: [
           async (c, next) => {
-            const token = c.req.header("Authorization");
-            if (!token || token !== \`Bearer \${AI_API_KEY}\`) {
+            // Skip authentication if AI_API_KEY is not set (dev mode)
+            if (!authRequired()) {
+              logger.debug("Authentication disabled - no AI_API_KEY set");
+              await next();
+              return;
+            }
+
+            // Flexible header access for different middleware implementations
+            // Try multiple access patterns for compatibility
+            let authHeader = '';
+            try {
+              // Try header() method (most common in Hono)
+              authHeader = c.req.header('Authorization') || c.req.header('authorization') || '';
+            } catch (e) {
+              // Fallback for other implementations
+              authHeader = '';
+            }
+
+            // Normalize and compare using constant-time comparison
+            const expectedToken = `bearer ${AI_API_KEY}`.toLowerCase();
+            const receivedToken = authHeader.toLowerCase();
+
+            if (!authHeader || !secureCompare(receivedToken, expectedToken)) {
+              logger.warn("Unauthorized access attempt to /chat", { 
+                hasHeader: !!authHeader, 
+                headerPrefix: authHeader.substring(0, 10) 
+              });
               return c.json({ error: "Unauthorized" }, 401);
             }
+
             await next();
           },
         ],
@@ -131,15 +180,18 @@ const mastraConfig: ExtendedMastraConfig = {
 
           const agents = mastra.getAgents();
           const agentNames = Object.keys(agents);
-          if (agentNames.length === 0) return c.json({ error: "No agent found" }, 500);
+          if (agentNames.length === 0) {
+            logger.error("No agent found in mastra instance");
+            return c.json({ error: "No agent found" }, 500);
+          }
 
           const agent = agents[agentNames[0]] as any;
           let reply: string;
           try {
             reply = await agent.run(message);
           } catch (e) {
-            console.error('Agent run failed:', e);
-            reply = "ARA could not process your message";
+            logger.error('Agent run failed', e);
+            reply = "ARA could not process your message. Please try again.";
           }
 
           return c.json({ reply });
@@ -159,13 +211,15 @@ export const mastra = new Mastra(mastraConfig);
 try {
   registerTelegramTrigger(mastra);
 } catch (e) {
-  console.warn("Telegram trigger failed:", e);
+  logger.warn("Telegram trigger failed", e);
 }
 
 // Enforce single agent
 if (Object.keys(mastra.getAgents()).length > 1) {
   throw new Error("Only 1 agent allowed");
 }
+
+logger.info(`Mastra server initialized on port ${APP_PORT}`);
 
 export default mastra;
 
