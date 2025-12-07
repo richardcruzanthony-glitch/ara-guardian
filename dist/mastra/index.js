@@ -83,7 +83,7 @@ const mastraConfig = {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${AI_API_KEY}'
+            'Authorization': \`Bearer ${AI_API_KEY}\`
           },
           body: JSON.stringify({ message: text })
         });
