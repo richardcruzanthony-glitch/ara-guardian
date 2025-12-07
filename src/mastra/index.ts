@@ -3,7 +3,6 @@ process.env.MASTRA_TELEMETRY_ENABLED = "false";
 
 import { Mastra } from "@mastra/core";
 import { MCPServer } from "@mastra/mcp";
-import { registerApiRoute } from "@mastra/core/server";
 
 import { brainEngine } from "./tools/brainEngine.js";
 import { generateQuote, getMaterialsList } from "./tools/guardianPricing.js";
@@ -15,8 +14,8 @@ import { adjuster } from "./tools/adjuster.js";
 
 import { inngestServe } from "./inngest/index.js";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers.js";
+import { registerApiRoute } from "@mastra/core/server";
 
-// Extend Mastra config for tools & inngest
 type ExtendedMastraConfig = ConstructorParameters<typeof Mastra>[0] & {
   tools?: unknown[];
   inngest?: { serve: typeof inngestServe };
@@ -41,7 +40,7 @@ const mastraConfig: ExtendedMastraConfig = {
     host: "0.0.0.0",
     port: Number(process.env.PORT) || 5000,
     apiRoutes: [
-      // Root route with interactive chat
+      // Root route with interactive chat box
       registerApiRoute("/", {
         method: "GET",
         handler: async (c) => {
@@ -71,6 +70,7 @@ button { padding: 8px 12px; }
   <input id="userInput" type="text" placeholder="Type your message..." />
   <button id="sendBtn">Send</button>
 </div>
+
 <script>
 const messagesDiv = document.getElementById("messages");
 const input = document.getElementById("userInput");
@@ -123,13 +123,13 @@ input.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMessage();
         },
       }),
 
-      // Chat endpoint
+      // Chat endpoint for AI assistant / web chat
       registerApiRoute("/chat", {
         method: "POST",
         middleware: [
           async (c, next) => {
-            const token = c.req.header("Authorization"); // fixed 'headers' -> 'header'
-            if (!token || token !== `Bearer ${AI_API_KEY}`) {
+            const token = c.req.header("Authorization");
+            if (!token || token !== \`Bearer \${AI_API_KEY}\`) {
               return c.json({ error: "Unauthorized" }, 401);
             }
             await next();
@@ -139,13 +139,14 @@ input.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMessage();
           const { message } = await c.req.json();
           if (!message) return c.json({ error: "No message provided" }, 400);
 
-          const agent = mastra.getAgents()["default"];
-          if (!agent || !("run" in agent))
-            return c.json({ error: "Agent not ready" }, 500);
+          const agents = mastra.getAgents();
+          const agentNames = Object.keys(agents);
+          if (agentNames.length === 0) return c.json({ error: "No agent found" }, 500);
 
-          // Use agent.run safely
+          const agent = agents[agentNames[0]]; // use the first agent
           const reply = await (agent as any).run(message);
-          return c.json({ reply });
+
+          return c.json({ reply: reply || "ARA could not process your message" });
         },
       }),
     ],
@@ -162,10 +163,10 @@ input.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMessage();
 
 export const mastra = new Mastra(mastraConfig);
 
-// TELEGRAM TRIGGER
+// TELEGRAM IS BACK — FULLY COMPATIBLE
 registerTelegramTrigger(mastra);
 
-// ONLY ONE AGENT
+// ONLY ONE AGENT — KEEPS IT CLEAN
 if (Object.keys(mastra.getAgents()).length > 1)
   throw new Error("Only 1 agent allowed");
 
