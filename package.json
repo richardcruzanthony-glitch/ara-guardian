@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "dev": "mastra dev",
     "build": "node build-simple.js",
     "start": "node dist/index.js",
@@ -46,8 +46,10 @@
   },
   "devDependencies": {
     "@types/node": "^24.6.2",
+    "jest": "^30.2.0",
     "mastra": "^0.14.0",
     "prettier": "^3.6.2",
+    "ts-jest": "^29.4.6",
     "ts-node": "^10.9.1",
     "typescript": "^5.9.3"
   }
