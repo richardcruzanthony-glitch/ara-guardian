@@ -12,6 +12,8 @@ import { scraper } from "./tools/scraper.js";
 import { skillInstaller } from "./tools/skillInstaller.js";
 import { adjuster } from "./tools/adjuster.js";
 
+import { araGuardianAgent } from "./agents/araGuardianAgent.js";
+
 import { inngestServe } from "./inngest/index.js";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers.js";
 import { registerApiRoute } from "@mastra/core/server";
@@ -26,6 +28,9 @@ const AI_API_KEY = process.env.AI_API_KEY || "supersecretkey";
 
 const mastraConfig: ExtendedMastraConfig = {
   telemetry: { enabled: false },
+  agents: {
+    araGuardianAgent,
+  },
   tools: [
     brainEngine,
     generateQuote,
@@ -136,9 +141,10 @@ const mastraConfig: ExtendedMastraConfig = {
           const agent = agents[agentNames[0]] as any;
           let reply: string;
           try {
-            reply = await agent.run(message);
+            const response = await agent.generateLegacy(message);
+            reply = response.text || "ARA did not return a response";
           } catch (e) {
-            console.error('Agent run failed:', e);
+            console.error('Agent generate failed:', e);
             reply = "ARA could not process your message";
           }
 
