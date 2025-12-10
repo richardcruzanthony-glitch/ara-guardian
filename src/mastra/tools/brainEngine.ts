@@ -232,4 +232,5 @@ class BrainEngine {
 }
 
 export const brainEngine = new BrainEngine();
-export { BrainEngine, MemoryNode };
+export { BrainEngine };
+export type { MemoryNode };
