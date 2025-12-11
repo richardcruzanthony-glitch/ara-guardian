@@ -130,19 +130,11 @@ const mastraConfig: ExtendedMastraConfig = {
           },
         ],
         handler: async (c) => {
-          const { message } = await c.req.json();
-          if (!message) return c.json({ error: "No message provided" }, 400);
-          let msgStr: string;
-          if (typeof message === 'string') {
-            msgStr = message;
-          } else if (Array.isArray(message)) {
-            const mapped = message.map((m: any) => typeof m === 'string' ? m : (typeof m === 'object' && m.content ? m.content : JSON.stringify(m))).join(' ');
-            msgStr = mapped;
-          } else if (typeof message === 'object' && message !== null && 'content' in message) {
-            msgStr = String((message as any).content);
-          } else {
-            msgStr = JSON.stringify(message);
+          const { message }: { message: string } = await c.req.json();
+          if (!message || !message.trim()) {
+            return c.json({ error: "Message must be a non-empty string" }, 400);
           }
+          const userMessage = message;
 
           const agents = mastra.getAgents();
           const agentNames = Object.keys(agents);
@@ -151,8 +143,8 @@ const mastraConfig: ExtendedMastraConfig = {
           const agent = agents[agentNames[0]] as any;
           let reply: string;
           try {
-            // @ts-ignore: Accept any type for getOpenRouterCompletion input
-            reply = await getOpenRouterCompletion(msgStr);
+            // @ts-ignore: Accept any type for getOpenRouterCompletion input, runtime check above
+            reply = await getOpenRouterCompletion(userMessage);
           } catch (e) {
             console.error('OpenRouter completion failed:', e);
             if (e instanceof Error) {
