@@ -8,7 +8,7 @@ export const openrouterClient = new OpenRouter({
 export async function getOpenRouterCompletion(message: string) {
   console.log('Sending to OpenRouter:', message);
   const completion = await openrouterClient.chat.send({
-    model: 'openai/gpt-4o',
+    model: 'mistral/devstral-2-2512', // Use Mistral Devstral 2 2512 free model
     messages: [{ role: 'user', content: message }],
     stream: false,
   });

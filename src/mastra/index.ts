@@ -25,7 +25,7 @@ type ExtendedMastraConfig = ConstructorParameters<typeof Mastra>[0] & {
 };
 
 // Secret API key
-const AI_API_KEY = process.env.AI_API_KEY || "supersecretkey";
+const AI_API_KEY = process.env.OPENROUTER_API_KEY || "";
 
 const mastraConfig: ExtendedMastraConfig = {
   telemetry: { enabled: false },
@@ -97,7 +97,7 @@ const mastraConfig: ExtendedMastraConfig = {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer supersecretkey'
+            'Authorization': `Bearer ${window.OPENROUTER_API_KEY || ''}`
           },
           body: JSON.stringify({ message: text })
         });

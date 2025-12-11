@@ -16,7 +16,7 @@ import { inngestServe } from "./inngest/index.js";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers.js";
 import { registerApiRoute } from "@mastra/core/server";
 // Secret API key
-const AI_API_KEY = process.env.AI_API_KEY || "supersecretkey";
+const AI_API_KEY = process.env.OPENROUTER_API_KEY || "";
 const mastraConfig = {
     telemetry: { enabled: false },
     tools: [
@@ -87,7 +87,7 @@ const mastraConfig = {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer supersecretkey'
+            'Authorization': `, Bearer, $, { window, : .OPENROUTER_API_KEY || '' } `
           },
           body: JSON.stringify({ message: text })
         });
