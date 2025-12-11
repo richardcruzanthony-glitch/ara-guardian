@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
 // import { sharedPostgresStorage } from "../storage/index.js"; // Not available
-import { echoTool } from "../tools/echoTool.js";
+// echoTool import removed; not needed for OpenRouter model
 import { openrouter } from "../tools/openrouterTool.js";
 import { createOpenAI } from "@ai-sdk/openai";
 
@@ -69,7 +69,7 @@ export const exampleAgent = new Agent({
    * Tools must be created with createTool()
    * You can provide multiple tools.
    */
-  tools: { echoTool },
+  // No local tools needed for OpenRouter model
 
   /**
    * Optional: Add memory to persist conversations.
