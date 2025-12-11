@@ -6,10 +6,12 @@ export const openrouterClient = new OpenRouter({
 
 
 export async function getOpenRouterCompletion(message: string) {
+  console.log('Sending to OpenRouter:', message);
   const completion = await openrouterClient.chat.send({
     model: 'openai/gpt-4o',
     messages: [{ role: 'user', content: message }],
     stream: false,
   });
+  console.log('OpenRouter response:', completion);
   return completion.choices[0]?.message?.content || 'No response';
 }
