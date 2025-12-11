@@ -138,10 +138,10 @@ const mastraConfig: ExtendedMastraConfig = {
           const agent = agents[agentNames[0]] as any;
           let reply: string;
           try {
-            const response = await agent.generate(message);
+            const response = await agent.generateLegacy(message);
             reply = response.text || "No response";
           } catch (e) {
-            console.error('Agent generate failed:', e);
+            console.error('Agent generateLegacy failed:', e);
             if (e instanceof Error) {
               reply = `ARA could not process your message. Error: ${e.message}\nStack: ${e.stack}`;
             } else {
