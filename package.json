@@ -6,7 +6,7 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "dev": "mastra dev",
     "build": "node build-simple.js",
-    "start": "node app.js",
+    "start": "node app.cjs",
     "postinstall": "npm run build",
     "check": "tsc",
     "check:format": "prettier --check '**/*.ts'",
