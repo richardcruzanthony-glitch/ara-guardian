@@ -5,6 +5,8 @@ import { Mastra } from "@mastra/core";
 import { MCPServer } from "@mastra/mcp";
 
 import { brainEngine } from "./tools/brainEngine.js";
+import { getOpenRouterCompletion } from "./tools/openrouterDirect.js";
+// @ts-ignore: Accept any type for getOpenRouterCompletion input
 import { exampleAgent } from "./agents/exampleAgent.js";
 import { generateQuote, getMaterialsList } from "./tools/guardianPricing.js";
 import { grokReasoning } from "./tools/grokReasoning.js";
@@ -130,6 +132,17 @@ const mastraConfig: ExtendedMastraConfig = {
         handler: async (c) => {
           const { message } = await c.req.json();
           if (!message) return c.json({ error: "No message provided" }, 400);
+          let msgStr: string;
+          if (typeof message === 'string') {
+            msgStr = message;
+          } else if (Array.isArray(message)) {
+            const mapped = message.map((m: any) => typeof m === 'string' ? m : (typeof m === 'object' && m.content ? m.content : JSON.stringify(m))).join(' ');
+            msgStr = mapped;
+          } else if (typeof message === 'object' && message !== null && 'content' in message) {
+            msgStr = String((message as any).content);
+          } else {
+            msgStr = JSON.stringify(message);
+          }
 
           const agents = mastra.getAgents();
           const agentNames = Object.keys(agents);
@@ -138,10 +151,10 @@ const mastraConfig: ExtendedMastraConfig = {
           const agent = agents[agentNames[0]] as any;
           let reply: string;
           try {
-            const response = await agent.generateLegacy(message);
-            reply = response.text || "No response";
+            // @ts-ignore: Accept any type for getOpenRouterCompletion input
+            reply = await getOpenRouterCompletion(msgStr);
           } catch (e) {
-            console.error('Agent generateLegacy failed:', e);
+            console.error('OpenRouter completion failed:', e);
             if (e instanceof Error) {
               reply = `ARA could not process your message. Error: ${e.message}\nStack: ${e.stack}`;
             } else {

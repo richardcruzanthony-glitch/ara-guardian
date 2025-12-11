@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 // import { sharedPostgresStorage } from "../storage/index.js"; // Not available
-import { exampleTool } from "../tools/exampleTool.js";
-import { createOpenAI } from "@ai-sdk/openai";
+// echoTool import removed; not needed for OpenRouter model
+import { openrouter } from "../tools/openrouterTool.js";
 /**
  * LLM CLIENT CONFIGURATION
  *
@@ -16,17 +16,6 @@ import { createOpenAI } from "@ai-sdk/openai";
  * No OpenAI API key required - charges billed to Replit credits
  * Automatic key rotation and management
  */
-const openai = createOpenAI({
-    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-});
-/*
- * OPTION 2: Standard OpenAI Setup (Your Own API Key)
- */
-// const openai = createOpenAI({
-//   baseURL: process.env.OPENAI_BASE_URL || undefined,
-//   apiKey: process.env.OPENAI_API_KEY,
-// });
 /**
  * Example Mastra Agent
  *
@@ -66,13 +55,13 @@ export const exampleAgent = new Agent({
      * MUST use AI SDK v4 syntax for Replit Playground compatibility.
      * Use openai.responses("gpt-5") for gpt-5 class models, use openai("gpt-4o") for gpt-4 class models.
      */
-    model: openai.responses("gpt-5"),
+    model: openrouter("gpt-4o"),
     /**
      * Provide tools that the agent can use
      * Tools must be created with createTool()
      * You can provide multiple tools.
      */
-    tools: { exampleTool },
+    // No local tools needed for OpenRouter model
     /**
      * Optional: Add memory to persist conversations.
      * Using PostgreSQL for production-ready persistent storage.

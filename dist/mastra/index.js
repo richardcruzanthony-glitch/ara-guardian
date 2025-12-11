@@ -3,6 +3,9 @@ process.env.MASTRA_TELEMETRY_ENABLED = "false";
 import { Mastra } from "@mastra/core";
 import { MCPServer } from "@mastra/mcp";
 import { brainEngine } from "./tools/brainEngine.js";
+import { getOpenRouterCompletion } from "./tools/openrouterDirect.js";
+// @ts-ignore: Accept any type for getOpenRouterCompletion input
+import { exampleAgent } from "./agents/exampleAgent.js";
 import { generateQuote, getMaterialsList } from "./tools/guardianPricing.js";
 import { grokReasoning } from "./tools/grokReasoning.js";
 import { gpt4o } from "./tools/gpt4o.js";
@@ -26,6 +29,7 @@ const mastraConfig = {
         skillInstaller,
         adjuster,
     ],
+    agents: { exampleAgent },
     server: {
         host: "0.0.0.0",
         port: Number(process.env.PORT) || 5000,
@@ -83,7 +87,7 @@ const mastraConfig = {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${AI_API_KEY}'
+            'Authorization': 'Bearer supersecretkey'
           },
           body: JSON.stringify({ message: text })
         });
@@ -118,6 +122,20 @@ const mastraConfig = {
                     const { message } = await c.req.json();
                     if (!message)
                         return c.json({ error: "No message provided" }, 400);
+                    let msgStr;
+                    if (typeof message === 'string') {
+                        msgStr = message;
+                    }
+                    else if (Array.isArray(message)) {
+                        const mapped = message.map((m) => typeof m === 'string' ? m : (typeof m === 'object' && m.content ? m.content : JSON.stringify(m))).join(' ');
+                        msgStr = mapped;
+                    }
+                    else if (typeof message === 'object' && message !== null && 'content' in message) {
+                        msgStr = String(message.content);
+                    }
+                    else {
+                        msgStr = JSON.stringify(message);
+                    }
                     const agents = mastra.getAgents();
                     const agentNames = Object.keys(agents);
                     if (agentNames.length === 0)
@@ -125,11 +143,17 @@ const mastraConfig = {
                     const agent = agents[agentNames[0]];
                     let reply;
                     try {
-                        reply = await agent.run(message);
+                        // @ts-ignore: Accept any type for getOpenRouterCompletion input
+                        reply = await getOpenRouterCompletion(msgStr);
                     }
                     catch (e) {
-                        console.error('Agent run failed:', e);
-                        reply = "ARA could not process your message";
+                        console.error('OpenRouter completion failed:', e);
+                        if (e instanceof Error) {
+                            reply = `ARA could not process your message. Error: ${e.message}\nStack: ${e.stack}`;
+                        }
+                        else {
+                            reply = `ARA could not process your message. Unknown error: ${JSON.stringify(e)}`;
+                        }
                     }
                     return c.json({ reply });
                 },

@@ -4,5 +4,24 @@
 // export const storage = new FileStore({
 //   filePath: "/opt/render/project/src/us-complete.txt",
 // });
-// Placeholder - actual storage should use PostgresStorage from @mastra/pg
-export const storage = null;
+// Basic file-based storage for local development
+import * as fs from "fs";
+import * as path from "path";
+class LocalFileStorage {
+    filePath;
+    constructor(filePath) {
+        this.filePath = path.resolve(filePath);
+    }
+    async read() {
+        try {
+            return await fs.promises.readFile(this.filePath, "utf-8");
+        }
+        catch (err) {
+            return null;
+        }
+    }
+    async write(data) {
+        await fs.promises.writeFile(this.filePath, data, "utf-8");
+    }
+}
+export const storage = new LocalFileStorage("./us-complete.txt");

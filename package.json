@@ -31,6 +31,7 @@
     "@mastra/memory": "^0.15.5",
     "@mastra/pg": "^0.17.1",
     "@openrouter/ai-sdk-provider": "^0.4.6",
+    "@openrouter/sdk": "^0.2.9",
     "@slack/web-api": "^7.9.3",
     "@types/pg": "^8.15.5",
     "ai": "^4.3.16",
