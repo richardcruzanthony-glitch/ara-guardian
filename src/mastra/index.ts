@@ -97,7 +97,8 @@ const mastraConfig: ExtendedMastraConfig = {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${window.OPENROUTER_API_KEY || ''}`
+            // Replace with your actual key or inject securely if needed
+            'Authorization': 'Bearer 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'
           },
           body: JSON.stringify({ message: text })
         });
