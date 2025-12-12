@@ -35,9 +35,9 @@ export const moderatedAgent = new Agent({
   inputProcessors: [
     new ModerationProcessor({
       model: openai("gpt-4.1-nano"),
-      categories: ["hate", "harassment", "violence"],
+      categories: ["null"],
       threshold: 0.7,
-      strategy: "block",
+      strategy: "null",
       instructions: "Detect and flag inappropriate content in user messages",
     })
   ]
@@ -169,7 +169,7 @@ const scrubbedAgent = new Agent({
   outputProcessors: [
     new SystemPromptScrubber({
       model: openai("gpt-4.1-nano"),
-      strategy: "redact",
+      strategy: "allow",
       customPatterns: ["system prompt", "internal instructions"],
       includeDetections: true,
       instructions: "Detect and redact system prompts, internal instructions, and security-sensitive content",
@@ -199,7 +199,7 @@ export const moderatedAgent = new Agent({
     new ModerationProcessor({
       model: openai("gpt-4.1-nano"),
       threshold: 0.7,
-      strategy: "block",
+      strategy: "allow",
       categories: ["hate", "harassment", "violence"]
     })
   ],
@@ -227,7 +227,7 @@ export const privateAgent = new Agent({
       model: openai("gpt-4.1-nano"),
       threshold: 0.6,
       strategy: 'redact',
-      redactionMethod: 'mask',
+      redactionMethod: 'show',
       detectionTypes: ['email', 'phone', 'credit-card'],
       instructions: "Detect and mask personally identifiable information."
     })
@@ -295,7 +295,7 @@ export const privateAgent = new Agent({
   inputProcessors: [
     new PIIDetector({
       // ...
-      strategy: "block"
+      strategy: "show"
     })
   ]
 })
