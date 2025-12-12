@@ -3,7 +3,7 @@ const url = require('url');
 const fetch = require('node-fetch');
 
 const PORT = process.env.PORT || 5000;
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 // HTML chat frontend (same as before)
 const html = `
@@ -71,25 +71,25 @@ const html = `
 </html>
 `;
 
-async function getOpenRouterCompletion(message) {
-  console.log('Sending to OpenRouter:', message);
+async function getOpenAICompletion(message) {
+  console.log('Sending to OpenAI:', message);
   try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'mistralai/devstral-2512:free',
+        model: 'gpt-3.5-turbo',
         messages: [{ role: 'user', content: message }],
         stream: false,
       }),
     });
 
     const rawBody = await response.text();
-    console.log('OpenRouter raw response status:', response.status);
-    console.log('OpenRouter raw response body:', rawBody);
+    console.log('OpenAI raw response status:', response.status);
+    console.log('OpenAI raw response body:', rawBody);
 
     if (!response.ok) {
       try {
@@ -103,8 +103,8 @@ async function getOpenRouterCompletion(message) {
     const completion = JSON.parse(rawBody);
     return completion.choices[0]?.message?.content || 'No response';
   } catch (err) {
-    console.error('OpenRouter fetch error:', err);
-    return 'Error contacting OpenRouter';
+    console.error('OpenAI fetch error:', err);
+    return 'Error contacting OpenAI';
   }
 }
 
@@ -124,7 +124,7 @@ const server = http.createServer(async (req, res) => {
           res.end(JSON.stringify({ error: 'Message must be a non-empty string' }));
           return;
         }
-        const reply = await getOpenRouterCompletion(data.message);
+        const reply = await getOpenAICompletion(data.message);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ reply }));
       } catch {
