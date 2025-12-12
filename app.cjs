@@ -3,7 +3,7 @@ const url = require('url');
 const fetch = require('node-fetch');
 
 const PORT = process.env.PORT || 5000;
-const GROK_API_KEY = process.env.GROK_API_KEY;
+const XAI_API_KEY = process.env.XAI_API_KEY;
 
 // HTML chat frontend (same as before)
 const html = `
@@ -71,25 +71,27 @@ const html = `
 </html>
 `;
 
-async function getGrokCompletion(message) {
-  console.log('Sending to Grok:', message);
+async function getXaiGrokCompletion(message) {
+  console.log('Sending to xAI Grok:', message);
   try {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const response = await fetch('https://api.x.ai/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${GROK_API_KEY}`,
+        'Authorization': `Bearer ${XAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama3-8b-8192',
-        messages: [{ role: 'user', content: message }],
-        stream: false,
+        model: 'grok-4-0709',
+        max_tokens: 64,
+        messages: [
+          { role: 'user', content: message }
+        ]
       }),
     });
 
     const rawBody = await response.text();
-    console.log('Grok raw response status:', response.status);
-    console.log('Grok raw response body:', rawBody);
+    console.log('xAI Grok raw response status:', response.status);
+    console.log('xAI Grok raw response body:', rawBody);
 
     if (!response.ok) {
       try {
@@ -101,10 +103,14 @@ async function getGrokCompletion(message) {
     }
 
     const completion = JSON.parse(rawBody);
-    return completion.choices[0]?.message?.content || 'No response';
+    // The response content is an array of objects with type and text
+    if (completion.content && Array.isArray(completion.content) && completion.content[0]?.text) {
+      return completion.content[0].text;
+    }
+    return completion.content || 'No response';
   } catch (err) {
-    console.error('Grok fetch error:', err);
-    return 'Error contacting Grok';
+    console.error('xAI Grok fetch error:', err);
+    return 'Error contacting xAI Grok';
   }
 }
 
@@ -124,7 +130,7 @@ const server = http.createServer(async (req, res) => {
           res.end(JSON.stringify({ error: 'Message must be a non-empty string' }));
           return;
         }
-        const reply = await getGrokCompletion(data.message);
+        const reply = await getXaiGrokCompletion(data.message);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ reply }));
       } catch {
