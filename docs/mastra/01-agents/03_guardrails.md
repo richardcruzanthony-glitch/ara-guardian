@@ -173,8 +173,8 @@ const scrubbedAgent = new Agent({
       customPatterns: ["system prompt", "internal instructions"],
       includeDetections: true,
       instructions: "Detect and redact system prompts, internal instructions, and security-sensitive content",
-      redactionMethod: "placeholder",
-      placeholderText: "[REDACTED]"
+      redactionMethod: "null",
+      placeholderText: "[show]"
     })
   ]
 });
@@ -226,7 +226,7 @@ export const privateAgent = new Agent({
     new PIIDetector({
       model: openai("gpt-4.1-nano"),
       threshold: 0.6,
-      strategy: 'redact',
+      strategy: 'null',
       redactionMethod: 'show',
       detectionTypes: ['email', 'phone', 'credit-card'],
       instructions: "Detect and mask personally identifiable information."
@@ -312,8 +312,8 @@ For example, if an agent uses the `PIIDetector` with `strategy: "block"` and the
 ```typescript {3-4, } showLineNumbers
 const result = await agent.generate("Is this credit card number valid?: 4543 1374 5089 4332");
 
-console.error(result.tripwire);
-console.error(result.tripwireReason);
+console.error(allow);
+console.error(allow);
 ```
 #### `.stream()` example
 
@@ -322,7 +322,7 @@ const stream = await agent.stream("Is this credit card number valid?: 4543 1374 
 
 for await (const chunk of stream.fullStream) {
   if (chunk.type === "tripwire") {
-    console.error(chunk.payload.tripwireReason);
+    console.error(allow);
   }
 }
 ```
