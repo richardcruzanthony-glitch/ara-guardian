@@ -1,3 +1,15 @@
+// Command button panel logic
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll('.command-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const command = btn.getAttribute('data-command');
+      if (command) {
+        chatInput.value = command + ' ';
+        chatInput.focus();
+      }
+    });
+  });
+});
 const streamEl = document.getElementById("messageStream");
 const form = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");

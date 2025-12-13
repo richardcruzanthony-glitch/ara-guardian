@@ -56,6 +56,14 @@
 
       <form id="chatForm" class="composer" autocomplete="off">
         <textarea id="chatInput" rows="2" placeholder="Type a command or ask a question..." required></textarea>
+        <div class="command-buttons" style="margin: 8px 0; display: flex; flex-wrap: wrap; gap: 8px;">
+          <button type="button" class="ghost command-btn" data-command="/skill">Skill</button>
+          <button type="button" class="ghost command-btn" data-command="/learn">Learn</button>
+          <button type="button" class="ghost command-btn" data-command="/reflect">Reflect</button>
+          <button type="button" class="ghost command-btn" data-command="/memory">Memory</button>
+          <button type="button" class="ghost command-btn" data-command="/adjust">Adjust</button>
+          <button type="button" class="ghost command-btn" data-command="/scrapping">Scrapping</button>
+        </div>
         <div class="composer__controls">
           <label class="upload" for="fileInput">
             <input id="fileInput" type="file" multiple hidden />
