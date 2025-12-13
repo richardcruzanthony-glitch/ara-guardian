@@ -2,108 +2,32 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ara Guardian · Control Room</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ARA Guardian Chat</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f7f7f7; }
+    #chat-container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+    #messages { min-height: 300px; margin-bottom: 16px; }
+    .message { margin-bottom: 12px; }
+    .message.user { text-align: right; color: #1976d2; }
+    .message.ara { text-align: left; color: #333; }
+    #command-buttons { margin-bottom: 1em; }
+    #command-buttons button { margin-right: 0.5em; margin-bottom: 0.5em; }
+    #chat-form { display: flex; }
+    #chat-input { flex: 1; padding: 8px; font-size: 1em; border-radius: 4px; border: 1px solid #ccc; }
+    #send-btn { padding: 8px 16px; font-size: 1em; border-radius: 4px; border: none; background: #1976d2; color: #fff; margin-left: 8px; cursor: pointer; }
+    #send-btn:hover { background: #125ea2; }
+  </style>
 </head>
 <body>
-  <div class="grid-shell">
-    <header class="panel panel--hero">
-      <div>
-        <p class="eyebrow">Ara Guardian</p>
-        <h1>Command your AI field unit</h1>
-        <p class="lede">
-          Orchestrate conversations, drop intel files, and let the Ara agent roam the web.
-          Everything pipes through this console—no cloud deployment required.
-        </p>
-      </div>
-      <div class="telemetry">
-        <div>
-          <p class="label">Server Status</p>
-          <p id="serverStatus" class="value value--online">Online</p>
-        </div>
-        <div>
-          <p class="label">Active Tunnel</p>
-          <div class="tunnel-input">
-            <input id="tunnelUrl" type="url" placeholder="https://example.ngrok.app" />
-            <button id="copyTunnel" type="button" aria-label="Copy tunnel URL">Copy</button>
-          </div>
-        </div>
-        <div>
-          <p class="label">Agent Mode</p>
-          <p class="value">Adaptive Recon</p>
-        </div>
-      </div>
-    </header>
-
-    <section class="panel panel--stack">
-      <h2>Operations Feed</h2>
-      <div id="messageStream" class="stream" aria-live="polite">
-        <div class="msg msg--system">
-          <span class="msg__role">System</span>
-          <p>Loaded 3,677 memory nodes · BrainEngine synced.</p>
-          <time>just now</time>
-        </div>
-        <div class="msg msg--agent">
-          <span class="msg__role">Ara</span>
-          <p>Ready for assignments. Upload intel or speak a command.</p>
-          <time>just now</time>
-        </div>
-      </div>
-<div id="command-buttons" style="margin-bottom: 1em;"></div>
-      <form id="chatForm" class="composer" autocomplete="off">
-        <textarea id="chatInput" rows="2" placeholder="Type a command or ask a question..." required></textarea>
-        <div class="command-buttons" style="margin: 8px 0; display: flex; flex-wrap: wrap; gap: 8px;">
-          <button type="button" class="ghost command-btn" data-command="/skill">Skill</button>
-          <button type="button" class="ghost command-btn" data-command="/learn">Learn</button>
-          <button type="button" class="ghost command-btn" data-command="/reflect">Reflect</button>
-          <button type="button" class="ghost command-btn" data-command="/memory">Memory</button>
-          <button type="button" class="ghost command-btn" data-command="/adjust">Adjust</button>
-          <button type="button" class="ghost command-btn" data-command="/scrapping">Scrapping</button>
-        </div>
-        <div class="composer__controls">
-          <label class="upload" for="fileInput">
-            <input id="fileInput" type="file" multiple hidden />
-            <span>Attach files</span>
-          </label>
-          <button id="micButton" type="button" class="ghost">🎙 Start voice</button>
-          <button type="submit" class="primary">Send</button>
-        </div>
-        <div id="uploadList" class="uploads" aria-live="polite"></div>
-      </form>
-    </section>
-
-    <section class="panel panel--stack">
-      <h2>Runtime Actions</h2>
-      <p class="hint">
-        Configure the base URL to hit if you are tunneling from another device. Leave blank to call the local server.
-      </p>
-      <div class="actions">
-        <label>
-          <span>API Base</span>
-          <input id="apiBase" type="url" placeholder="https://caecal-ngrok-url.ngrok-free.dev" />
-        </label>
-        <label>
-          <span>Tool Permission</span>
-          <select id="toolMode">
-            <option value="read">Read-only reconnaissance</option>
-            <option value="act" selected>Allow app + web control</option>
-            <option value="restricted">Restricted (no external calls)</option>
-          </select>
-        </label>
-        <label>
-          <span>Timeout (seconds)</span>
-          <input id="timeout" type="number" min="5" max="120" step="5" value="45" />
-        </label>
-      </div>
-      <button id="savePrefs" class="ghost">Save preferences</button>
-      <p id="statusLine" class="status-line" role="status"></p>
-    </section>
+  <div id="chat-container">
+    <div id="messages"></div>
+    <div id="command-buttons"></div>
+    <form id="chat-form" autocomplete="off">
+      <input id="chat-input" type="text" placeholder="Type your message..." autocomplete="off" />
+      <button id="send-btn" type="submit">Send</button>
+    </form>
   </div>
-
-  <script src="./app.js" type="module"></script>
+  <script src="app.js"></script>
 </body>
 </html>
