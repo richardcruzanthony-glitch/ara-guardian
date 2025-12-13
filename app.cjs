@@ -1,9 +1,12 @@
 const http = require('http');
 const url = require('url');
 const fetch = require('node-fetch');
+const fs = require('fs').promises;
+const path = require('path');
 
 const PORT = process.env.PORT || 5000;
 const XAI_API_KEY = process.env.XAI_API_KEY;
+const MEMORY_FILE = path.join(__dirname, 'us-complete.txt');
 
 // HTML chat frontend (same as before)
 const html = `
@@ -71,47 +74,66 @@ const html = `
 </html>
 `;
 
-async function getXaiGrokCompletion(message) {
-  console.log('Sending to xAI Grok:', message);
+// Helper: Load memory from file
+async function loadMemory() {
   try {
-    const response = await fetch('https://api.x.ai/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${XAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'grok-4-0709',
-        max_tokens: 64,
-        messages: [
-          { role: 'user', content: message }
-        ]
-      }),
-    });
-
-    const rawBody = await response.text();
-    console.log('xAI Grok raw response status:', response.status);
-    console.log('xAI Grok raw response body:', rawBody);
-
-    if (!response.ok) {
-      try {
-        const errorData = JSON.parse(rawBody);
-        return errorData.error?.message || 'API error occurred';
-      } catch {
-        return 'Failed to parse API error';
-      }
-    }
-
-    const completion = JSON.parse(rawBody);
-    // The response content is an array of objects with type and text
-    if (completion.content && Array.isArray(completion.content) && completion.content[0]?.text) {
-      return completion.content[0].text;
-    }
-    return completion.content || 'No response';
-  } catch (err) {
-    console.error('xAI Grok fetch error:', err);
-    return 'Error contacting xAI Grok';
+    return await fs.readFile(MEMORY_FILE, 'utf8');
+  } catch {
+    return '';
   }
+}
+
+// Helper: Append new memory to file
+async function saveMemory(newEntry) {
+  await fs.appendFile(MEMORY_FILE, `\n${newEntry}`);
+}
+
+// Ask Grok for a chat response, using memory as context
+async function getGrokCompletion(memory, message) {
+  const response = await fetch('https://api.x.ai/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${XAI_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'grok-4-0709',
+      max_tokens: 128,
+      messages: [
+        { role: 'system', content: `Memory:\n${memory}` },
+        { role: 'user', content: message }
+      ]
+    }),
+  });
+  const data = await response.json();
+  if (data.content && Array.isArray(data.content) && data.content[0]?.text) {
+    return data.content[0].text;
+  }
+  return data.content || 'No response';
+}
+
+// Ask Grok to reflect and improve memory
+async function reflectOnMemory(memory) {
+  const prompt = `Here is my current memory:\n${memory}\n\nPlease summarize, clean up, and improve this memory for future conversations.`;
+  const response = await fetch('https://api.x.ai/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${XAI_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'grok-4-0709',
+      max_tokens: 256,
+      messages: [
+        { role: 'system', content: prompt }
+      ]
+    }),
+  });
+  const data = await response.json();
+  if (data.content && Array.isArray(data.content) && data.content[0]?.text) {
+    return data.content[0].text;
+  }
+  return memory; // fallback to old memory if Grok fails
 }
 
 const server = http.createServer(async (req, res) => {
@@ -130,7 +152,12 @@ const server = http.createServer(async (req, res) => {
           res.end(JSON.stringify({ error: 'Message must be a non-empty string' }));
           return;
         }
-        const reply = await getXaiGrokCompletion(data.message);
+        const memory = await loadMemory();
+        const reply = await getGrokCompletion(memory, data.message);
+        await saveMemory(`User: ${data.message}\nAra: ${reply}`);
+        // Reflection step: summarize/improve memory
+        const updatedMemory = await reflectOnMemory(await loadMemory());
+        await fs.writeFile(MEMORY_FILE, updatedMemory); // Overwrite with improved memory
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ reply }));
       } catch {

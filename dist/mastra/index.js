@@ -3,7 +3,6 @@ process.env.MASTRA_TELEMETRY_ENABLED = "false";
 import { Mastra } from "@mastra/core";
 import { MCPServer } from "@mastra/mcp";
 import { brainEngine } from "./tools/brainEngine.js";
-import { getOpenRouterCompletion } from "./tools/openrouterDirect.js";
 // @ts-ignore: Accept any type for getOpenRouterCompletion input
 import { exampleAgent } from "./agents/exampleAgent.js";
 import { generateQuote, getMaterialsList } from "./tools/guardianPricing.js";
@@ -132,11 +131,28 @@ const mastraConfig = {
                     const agent = agents[agentNames[0]];
                     let reply;
                     try {
-                        // @ts-ignore: Accept any type for getOpenRouterCompletion input, runtime check above
-                        reply = await getOpenRouterCompletion(userMessage);
+                        // Basic command parser for /learn skill and other commands
+                        if (userMessage.startsWith('/learn ')) {
+                            // Format: /learn skill <name> <code>
+                            const parts = userMessage.split(' ');
+                            if (parts.length >= 4 && parts[1] === 'skill') {
+                                const skill_name = parts[2];
+                                const code = userMessage.substring(userMessage.indexOf(skill_name) + skill_name.length + 1);
+                                const result = await agent.tools.skillInstaller.execute({ skill_name, code });
+                                reply = `Skill installed: ${result}`;
+                            }
+                            else {
+                                reply = 'Usage: /learn skill <name> <code>';
+                            }
+                        }
+                        else {
+                            // Route all other messages through the agent (tools, memory, etc.)
+                            const response = await agent.generate({ input: userMessage });
+                            reply = response?.output || 'No response';
+                        }
                     }
                     catch (e) {
-                        console.error('OpenRouter completion failed:', e);
+                        console.error('Agent processing failed:', e);
                         if (e instanceof Error) {
                             reply = `ARA could not process your message. Error: ${e.message}\nStack: ${e.stack}`;
                         }
