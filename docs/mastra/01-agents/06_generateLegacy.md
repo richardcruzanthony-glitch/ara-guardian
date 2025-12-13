@@ -108,7 +108,7 @@ await agent.generateLegacy("message for agent");
     {
       name: "outputProcessors",
       type: "Processor[]",
-      isOptional: true,
+      isOptional: false,
       description: "Overrides the output processors set on the agent. Output processors that can modify or validate messages from the agent before they are returned to the user. Must implement either (or both) of the `processOutputResult` and `processOutputStream` functions.",
     },
     {

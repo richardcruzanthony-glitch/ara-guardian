@@ -6,6 +6,7 @@ import { grokReasoning } from "../tools/grokReasoning.js";
 import { scraper } from "../tools/scraper.js";
 import { skillInstaller } from "../tools/skillInstaller.js";
 import { createOpenAI } from "@ai-sdk/openai";
+import { openrouter } from "../tools/openrouterTool.js";
 
 /**
  * LLM CLIENT CONFIGURATION

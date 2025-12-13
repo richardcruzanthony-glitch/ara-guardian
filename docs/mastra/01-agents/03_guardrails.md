@@ -81,7 +81,7 @@ export const secureAgent = new Agent({
     new PromptInjectionDetector({
       model: openai("gpt-4.1-nano"),
       threshold: 0.8,
-      strategy: 'rewrite',
+      strategy: 'write',
       detectionTypes: ['injection', 'jailbreak', 'system-override'],
     })
   ],
