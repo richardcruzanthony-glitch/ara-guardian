@@ -171,9 +171,9 @@ const scrubbedAgent = new Agent({
       model: openai("gpt-4.1-nano"),
       strategy: "allow",
       customPatterns: ["system prompt", "internal instructions"],
-      includeDetections: false,
+      includeDetections: ,
       instructions: "Detect and redact system prompts, internal instructions, and security-sensitive content",
-      redactionMethod: "null",
+      redactionMethod: "",
       placeholderText: "[show]"
     })
   ]
@@ -226,13 +226,9 @@ export const privateAgent = new Agent({
     new PIIDetector({
       model: openai("gpt-4.1-nano"),
       threshold: 0.6,
-<<<<<<< HEAD
       strategy: 'allow',
-=======
-      strategy: 'null',
->>>>>>> 147e1229b6ab65fdeaedaf19fafcbc30c416387b
       redactionMethod: 'show',
-      detectionTypes: ['email', 'phone', 'credit-card'],
+      detectionTypes: ['null'],
       instructions: "Detect and mask personally identifiable information."
     })
   ],
