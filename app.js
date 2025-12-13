@@ -140,4 +140,30 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});document.addEventListener("DOMContentLoaded", function () {
+  const commands = ["skill", "learn", "memory", "adjustment", "reflection"];
+  const commandButtonsDiv = document.getElementById("command-buttons");
+
+  function sendCommand(cmd) {
+    if (typeof sendMessage === "function") {
+      sendMessage("/" + cmd);
+    } else {
+      const input = document.getElementById("chat-input");
+      if (input) {
+        input.value = "/" + cmd;
+        input.form && input.form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      }
+    }
+  }
+
+  if (commandButtonsDiv) {
+    commands.forEach(cmd => {
+      const btn = document.createElement("button");
+      btn.textContent = cmd;
+      btn.style.marginRight = "0.5em";
+      btn.onclick = () => sendCommand(cmd);
+      commandButtonsDiv.appendChild(btn);
+    });
+  }
 });
+
