@@ -74,7 +74,7 @@ export const exampleAgent = new Agent({
    * MUST use AI SDK v4 syntax for Replit Playground compatibility.
    * Use openai.responses("gpt-5") for gpt-5 class models, use openai("gpt-4o") for gpt-4 class models.
    */
-  model: openrouter("gpt-4o"),
+  model: createOpenAI({ apiKey: process.env.OPENAI_API_KEY })("gpt-4o"),
 
   /**
    * Provide tools that the agent can use

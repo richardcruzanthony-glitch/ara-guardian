@@ -147,7 +147,7 @@ const mastraConfig = {
                         }
                         else {
                             // Route all other messages through the agent (tools, memory, etc.)
-                            const response = await agent.generate({ input: userMessage });
+                            const response = await agent.generateLegacy(userMessage);
                             reply = response?.output || 'No response';
                         }
                     }
