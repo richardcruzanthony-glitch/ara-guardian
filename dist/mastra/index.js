@@ -86,8 +86,7 @@ const mastraConfig = {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            // Replace with your actual key or inject securely if needed
-            'Authorization': 'Bearer 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'
+            // 'Authorization': 'Bearer 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'
           },
           body: JSON.stringify({ message: text })
         });
@@ -109,15 +108,15 @@ const mastraConfig = {
             // Chat Endpoint
             registerApiRoute("/chat", {
                 method: "POST",
-                middleware: [
-                    async (c, next) => {
-                        const token = c.req.header("Authorization");
-                        if (!token || token !== `Bearer ${AI_API_KEY}`) {
-                            return c.json({ error: "Unauthorized" }, 401);
-                        }
-                        await next();
-                    },
-                ],
+                // middleware: [
+                //   async (c, next) => {
+                //     const token = c.req.header("Authorization");
+                //     if (!token || token !== `Bearer ${AI_API_KEY}`) {
+                //       return c.json({ error: "Unauthorized" }, 401);
+                //     }
+                //     await next();
+                //   },
+                // ],
                 handler: async (c) => {
                     const { message } = await c.req.json();
                     if (!message || !message.trim()) {
@@ -147,7 +146,7 @@ const mastraConfig = {
                         }
                         else {
                             // Route all other messages through the agent (tools, memory, etc.)
-                            const response = await agent.generateLegacy(userMessage);
+                            const response = await agent.generate({ input: userMessage });
                             reply = response?.output || 'No response';
                         }
                     }
