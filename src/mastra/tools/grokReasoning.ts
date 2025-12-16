@@ -14,8 +14,8 @@ export const grokReasoning = {
         Authorization: `Bearer ${process.env.GROK_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "grok-beta",
-        messages: [{ role: "user", content: question }],
+        model: "grok",
+        messages: [{ role: "human", content: question }],
         temperature: 0.7,
         max_tokens: 4096,
       }),
